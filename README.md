@@ -29,7 +29,7 @@ ges_v01/
 │   ├── __init__.py               # Archivo de inicialización del módulo de modelos
 ├── .gitignore                    # Archivos y carpetas ignorados por Git
 ├── [README.md](http://_vscodecontentref_/2)                     # Documentación del proyecto
-
+```
 Requisitos
 
 Python 3.10 o superior
