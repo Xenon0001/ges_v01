@@ -11,6 +11,7 @@ from gui.gui_control_panel.gui_panel import Panel
 from gui.gui_ampa.gui_ampa import AMPA
 from gui.gui_boletin.gui_boletin import Boletin
 from gui.gui_settings.gui_settings import Settings
+from gui.gui_teachers.gui_profesores import Profesores
 
 
 class App(ttk.Window):
@@ -29,10 +30,10 @@ class App(ttk.Window):
         self.frames = {
             "inicio": self.mostrar_inicio,
             "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
-            "profesores": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
-            "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
-            "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
-            "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
+            "profesores": lambda: self.main_frame.cambiar_contenido(Profesores),
+            "boletin": lambda: self.main_frame.cambiar_contenido(Boletin),
+            "ampa": lambda: self.main_frame.cambiar_contenido(AMPA),
+            "ajustes": lambda: self.main_frame.cambiar_contenido(Settings),
         }
         
         self.mostrar_inicio()
