@@ -8,6 +8,9 @@ from gui.gui_contenido_dinamico import MainFrame
 
 from gui.gui_student.gui_estudiantes import EstudiantesSeccion
 from gui.gui_control_panel.gui_panel import Panel
+from gui.gui_ampa.gui_ampa import AMPA
+from gui.gui_boletin.gui_boletin import Boletin
+from gui.gui_settings.gui_settings import Settings
 
 
 class App(ttk.Window):
@@ -25,7 +28,11 @@ class App(ttk.Window):
         
         self.frames = {
             "inicio": self.mostrar_inicio,
-            "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion)
+            "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
+            "profesores": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
+            "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
+            "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
+            "estudiantes": lambda: self.main_frame.cambiar_contenido(EstudiantesSeccion),
         }
         
         self.mostrar_inicio()
