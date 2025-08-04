@@ -7,4 +7,11 @@ class EstudiantesSeccion(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         
-        ttk.Label(self, text="Estudiantes").pack(expand=True, fill=BOTH)
+        
+        self.frames_estudiantes()
+    
+    def frames_estudiantes(self):
+        self.top_frame = ttk.Frame(self, height=200)
+        self.top_frame.pack(fill=X)
+        self.bottom_frame = ttk.Frame(self)
+        self.bottom_frame.pack(fill=BOTH)
