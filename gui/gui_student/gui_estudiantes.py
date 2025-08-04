@@ -15,3 +15,5 @@ class EstudiantesSeccion(ttk.Frame):
         self.top_frame.pack(fill=X)
         self.bottom_frame = ttk.Frame(self)
         self.bottom_frame.pack(fill=BOTH)
+        
+        ttk.Button(self.top_frame, text="Inicio").pack()
