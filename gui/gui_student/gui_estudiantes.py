@@ -16,4 +16,5 @@ class EstudiantesSeccion(ttk.Frame):
         self.bottom_frame = ttk.Frame(self)
         self.bottom_frame.pack(fill=BOTH)
         
-        ttk.Button(self.top_frame, text="Inicio").pack(side=LEFT)
+        ttk.Button(self.top_frame, text="Inicio", width=100).pack(side=RIGHT)
+        ttk.Button(self.top_frame, text="Registro", width=100).pack(side=RIGHT)
