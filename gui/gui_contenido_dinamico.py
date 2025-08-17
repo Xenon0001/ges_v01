@@ -6,7 +6,7 @@ from ttkbootstrap.constants import *
 # --- Área de contenido principal ---
 class MainFrame(ttk.Frame):
     def __init__(self, parent):
-        super().__init__(parent, padding=10, bootstyle="primary")
+        super().__init__(parent, padding=10)
     
     def limpiar(self):
         for widget in self.winfo_children():
