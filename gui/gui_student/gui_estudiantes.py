@@ -2,22 +2,54 @@ import tkinter as tk
 from tkinter import ttk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+from ttkbootstrap.dialogs import Messagebox
 
 class EstudiantesSeccion(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         
-        
-        self.frames_estudiantes()
-    
-    def frames_estudiantes(self):
         # Frames para dividir la interfaz
-        top_frame = ttk.Frame(self, height=200)
+        menu_frame = ttk.Frame(self, height=200)
+        menu_frame.pack(fill=X)
+    
+        # Botones del menu
+        self.btn_menu_registro = ttk.Button(menu_frame, text="Registro", width=20, command= lambda t='registro': self.cambiar_de_seccion(t))
+        self.btn_menu_registro.pack(side=RIGHT)
+        
+        self.btn_menu_lista = ttk.Button(menu_frame, text="Inicio", width=20, command= lambda t='inicio': self.cambiar_de_seccion(t))
+        self.btn_menu_lista.pack(side=RIGHT, padx=2)
+                
+        self.seccion_list = ListaEstudiantes(self)
+        self.seccion_list.pack()
+        self.seccion_regis = RegistrarEstudiantes(self)
+        self.seccion_regis.pack()
+        
+        self.cambiar_de_seccion('inicio')
+    
+    # Lógica para cambiar de vista: lo moveré a la carpeta model luego
+    def cambiar_de_seccion(self, mostrar):
+        if mostrar == 'registro':
+            self.seccion_list.pack_forget()
+        
+            if not self.seccion_regis.winfo_ismapped():
+                self.seccion_regis.pack(expand=True, fill=BOTH)
+            
+        elif mostrar == 'inicio':   
+            self.seccion_regis.pack_forget()
+
+            if not self.seccion_list.winfo_ismapped():
+                self.seccion_list.pack(expand=True, fill=BOTH)
+
+
+
+class ListaEstudiantes(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        
         frame_search = ttk.Frame(self, height=100)
         self.table_frame = ttk.Frame(self)
         
         # Mostrar en pantalla
-        top_frame.pack(fill=X)
         frame_search.pack(fill=X)
         frame_search.pack_propagate(False)
         frame_search.grid_propagate(False)
@@ -25,10 +57,6 @@ class EstudiantesSeccion(ttk.Frame):
         self.table_frame.pack(expand=True, fill=BOTH, pady=10)
         self.table_frame.pack_propagate(None)
         self.table_frame.grid_propagate(None)
-    
-        # Botones del menu
-        ttk.Button(top_frame, text="Registro", width=20).pack(side=RIGHT)
-        ttk.Button(top_frame, text="Inicio", width=20).pack(side=RIGHT, padx=2)
         
         # widget para frame search
         ttk.Label(frame_search, text="Nombre del estudiante", justify=LEFT).grid(row=0, column=0, sticky=W, pady=(20, 5))
@@ -65,3 +93,10 @@ class EstudiantesSeccion(ttk.Frame):
             cb.insert('', 'end', values=fila)
         
         cb.pack(expand=True, fill=BOTH)
+
+
+class RegistrarEstudiantes(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        
+        ttk.Label(self, text='Registrar').pack()
