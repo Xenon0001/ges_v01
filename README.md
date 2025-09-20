@@ -32,6 +32,7 @@ ges_v01/
 ├── model/                        # Modelos de datos
 ├── .gitignore
 └── README.md
+```
 
 
 ---
