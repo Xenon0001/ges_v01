@@ -36,58 +36,59 @@ ges_v01/
 
 ---
 
-⚙️ Requisitos
+## ⚙️ Requisitos
 
-🐍 Python 3.10 o superior
+- 🐍 Python 3.10 o superior
 
-🎨 Paquete ttkbootstrap
+- 🎨 Paquete ttkbootstrap
 
 
-Instalación de dependencias:
-
+### Instalación de dependencias:
+```
 pip install ttkbootstrap
-
+```
 
 ---
 
-🚀 Instalación y Ejecución
+### 🚀 Instalación y Ejecución
 
 Clona el repositorio y ejecuta el proyecto:
-
+```
 git clone https://github.com/Xenon0001/ges_v01.git
 cd ges_v01
+
 python app.py
+```
+
+---
+
+## 💡 Lo que Resuelve
+
+- ✅ Optimiza la gestión de estudiantes en pequeñas instituciones.
+
+- ✅ Reduce el tiempo de administración con una interfaz intuitiva.
+
+- ✅ Permite expandir el sistema a más módulos educativos en el futuro.
+
 
 
 ---
 
-💡 Lo que Resuelve
-
-✅ Optimiza la gestión de estudiantes en pequeñas instituciones.
-
-✅ Reduce el tiempo de administración con una interfaz intuitiva.
-
-✅ Permite expandir el sistema a más módulos educativos en el futuro.
-
-
-
----
-
-📚 Aprendizajes Durante el Desarrollo
+## 📚 Aprendizajes Durante el Desarrollo
 
 Durante la creación de GES aprendí a:
 
-Diseñar interfaces modernas con ttkbootstrap.
+- Diseñar interfaces modernas con ttkbootstrap.
 
-Implementar contenedores dinámicos para una experiencia fluida.
+- Implementar contenedores dinámicos para una experiencia fluida.
 
-Estructurar un proyecto en Python con buenas prácticas.
+- Estructurar un proyecto en Python con buenas prácticas.
 
 
 
 ---
 
-📊 Estadísticas
+## 📊 Estadísticas
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white" alt="Python"/>
@@ -96,7 +97,7 @@ Estructurar un proyecto en Python con buenas prácticas.
 </p>
 ---
 
-📜 Licencia
+## 📜 Licencia
 
 Este proyecto está bajo la licencia MIT.
 Consulta el archivo LICENSE para más detalles.
@@ -104,7 +105,7 @@ Consulta el archivo LICENSE para más detalles.
 
 ---
 
-👨‍💻 Autor
+## 👨‍💻 Autor
 
 Xenon0001 🚀
 📧 Contacto: xenonpy465@gmail.com
@@ -119,4 +120,4 @@ Xenon0001 🚀
   <strong>GES: Simplificando la gestión educativa con tecnología.</strong>  
 </p>
 ```
---- 
+---
