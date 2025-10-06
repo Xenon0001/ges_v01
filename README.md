@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/GES-Gestor%20Educativo%20Simple-1E90FF?style=for-the-badge&logo=python&logoColor=white" alt="GES Banner"/>
 </p>
 
-# 🎓 GES - Gestor Educativo Simple (ges_v01)
+# 🎓 GES - Gestor Educativo Simple
 
 **GES** es una aplicación de escritorio desarrollada en **Python** con `ttkbootstrap`, diseñada para **facilitar la gestión educativa** en centros, academias y proyectos de enseñanza.  
 Con una interfaz moderna, dinámica y fácil de usar, busca simplificar las tareas administrativas y mejorar la experiencia de gestión.
