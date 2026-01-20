@@ -1,0 +1,25 @@
+# --- ENTORNOS VIRTUALES Y DEPENDENCIAS ---
+venv/
+env/
+ENV/
+.venv/
+
+# --- ARCHIVOS DE PYTHON (Compilados) ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- BASES DE DATOS ---
+*.db
+*.sqlite3
+
+# --- ARCHIVOS DE CONFIGURACIÓN SENSIBLE (Secretos) ---
+.env
+instance/
+.secret*
+
+# --- ARCHIVOS DE SISTEMA O EDITORES ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
