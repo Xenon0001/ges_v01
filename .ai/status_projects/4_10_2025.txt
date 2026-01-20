@@ -1,0 +1,22 @@
+ESTADO DEL PROYECTO GES
+
+Fase actual: Fase 1 – Núcleo
+
+Completado:
+
+* Nada aún
+
+En progreso:
+
+* Definición de arquitectura
+* Definición de dominio
+
+Siguiente tarea:
+
+* Diseño del modelo de datos
+* Creación de entidades base (Student, Tutor, Enrollment)
+
+Notas:
+
+* Priorizar simplicidad
+* No UI compleja todavía

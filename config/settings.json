@@ -1,0 +1,33 @@
+{
+  "school_info": {
+    "name": "",
+    "address": "",
+    "phone": "",
+    "email": "",
+    "website": ""
+  },
+  "academic_settings": {
+    "active_academic_year_id": null,
+    "default_grade_id": null,
+    "enrollment_fee": 50000,
+    "currency": "XAF"
+  },
+  "paths": {
+    "backup_path": "C:\\Users\\luisr\\OneDrive\\Documentos\\xenonpy_proyects\\ges_proy\\backups",
+    "history_path": "C:\\Users\\luisr\\OneDrive\\Documentos\\xenonpy_proyects\\ges_proy\\historial",
+    "export_path": "C:\\Users\\luisr\\Downloads"
+  },
+  "ui_preferences": {
+    "theme": "light",
+    "language": "es",
+    "auto_save_interval": 300,
+    "show_confirmations": true
+  },
+  "system": {
+    "version": "1.0.0",
+    "first_run": true,
+    "last_backup_date": null,
+    "data_migration_version": "1.0.0",
+    "last_saved": "2026-01-20T13:42:06.958533"
+  }
+}

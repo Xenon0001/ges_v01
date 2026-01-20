@@ -1,0 +1,14 @@
+# GES - Sistema de Gestión Escolar - Dependencies
+# Core dependencies
+SQLAlchemy==2.0.23
+customtkinter==5.2.1
+pandas==2.1.4
+matplotlib==3.8.2
+Pillow==10.1.0
+
+# Optional: For Excel import/export
+openpyxl==3.1.2
+
+# Development dependencies (optional)
+pytest==7.4.3
+black==23.11.0

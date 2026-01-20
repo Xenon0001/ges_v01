@@ -1,0 +1,244 @@
+# GES – Sistema de Gestión Escolar
+
+## 1. Visión depurada del proyecto
+
+GES es un **sistema de gestión escolar offline-first**, diseñado específicamente para centros educativos de Guinea Ecuatorial, donde el acceso a Internet es limitado pero la necesidad de **orden, control y toma de decisiones basada en datos** es real.
+
+GES no pretende competir con grandes ERPs educativos online, sino **resolver bien el 80% de los problemas reales** de una escuela local con una herramienta **simple, robusta, local y comprensible**.
+
+---
+
+## 2. Problema real que resuelve
+
+En la práctica, muchos centros:
+
+* Gestionan datos en **Excel desordenados**
+* No tienen visión clara de **matrículas, pagos ni rendimiento**
+* Pierden información histórica cada año
+* No pueden analizar aprobados/suspensos con facilidad
+
+GES centraliza todo eso en una **aplicación local**, con estructura clara y datos consistentes.
+
+---
+
+## 3. Alcance realista del MVP
+
+### Objetivo del MVP
+
+Tener una **primera versión usable en producción local** en el menor tiempo posible, que ya aporte valor real a una escuela.
+
+### Incluye (MVP)
+
+* Login local (1 centro, múltiples usuarios básicos)
+* Registro de:
+
+  * Estudiantes
+  * Profesores
+  * Personal administrativo
+* Estructura académica:
+
+  * Grados (Primaria, Secundaria, etc.)
+  * Cursos
+  * Aulas
+  * Turnos
+* Matrícula:
+
+  * Registro de pagos
+  * Opción de calendario por tutor
+* Notas:
+
+  * Trimestres
+  * Recuperaciones
+  * Cálculo automático de aprobado/suspenso
+* Gráficas básicas:
+
+  * Rendimiento general
+  * Por grado / curso / aula
+* Importación inicial desde Excel
+* Historial académico local por año
+
+### Fuera del MVP (por ahora)
+
+* Licencias online
+* Sincronización en la nube
+* Multi-centro
+* App web completa
+
+---
+
+## 4. Stack tecnológico propuesto (alineado a tu perfil)
+
+### Lenguaje
+
+* **Python** (core del proyecto)
+
+### UI (Desktop)
+
+* **CustomTkinter**
+
+  * Rápido
+  * Moderno
+  * Ya lo dominas
+
+### Backend local
+
+* Arquitectura por capas (no MVC clásico)
+* Python puro + servicios
+
+### Base de datos
+
+* **SQLite**
+
+  * Offline
+  * Robusto
+  * Fácil backup
+
+### ORM
+
+* **SQLAlchemy (modo simple)**
+
+### Gráficas
+
+* **Matplotlib** (para MVP)
+
+### Export / Import
+
+* **Pandas** (Excel ↔ DB)
+
+### Seguridad básica
+
+* Hash de contraseñas (bcrypt)
+* Backups cifrados localmente
+
+---
+
+## 5. Arquitectura recomendada (limpia y escalable)
+
+```
+GES/
+│
+│
+├── .ai/
+│   ├── status_project/  # archivos .txt de estado del proyecto
+│   ├──                  # Context
+│
+│
+├── app/
+│   ├── ui/              # Pantallas (CustomTkinter)
+│   ├── controllers/     # Lógica de interacción
+│   ├── services/        # Reglas de negocio
+│   ├── domain/          # Entidades (Student, Teacher...)
+│   ├── repositories/    # Acceso a datos
+│   └── utils/
+│
+├── database/
+│   ├── models/
+│   ├── migrations/
+│   └── db.sqlite3
+│
+├── reports/             # Gráficas y análisis
+├── backups/
+├── imports/             # Excels
+├── config/
+│   └── settings.py
+│
+├── main.py
+└── README.md
+```
+
+👉 Esta estructura te permite **crecer a web o API sin reescribir todo**.
+
+---
+
+## 6. Modelo de datos base (simplificado)
+
+### Entidades clave
+
+* School
+* User (roles básicos)
+* Student
+* Tutor
+* Enrollment (matrícula)
+* Payment
+* AcademicYear
+* Grade
+* Course
+* Classroom
+* Subject
+* Score
+
+Relaciones simples, bien definidas desde el inicio.
+
+---
+
+## 7. Concepto clave: Historial académico
+
+Cada año académico genera:
+
+```
+/historial/
+  CentroX_2026/
+    estudiantes.json
+    notas.json
+    docentes.json
+```
+
+Esto convierte a GES en una **fuente de verdad histórica**, incluso si el sistema se reinstala.
+
+---
+
+## 8. Licencias (post-MVP)
+
+Idea de licencia.
+
+Estrategia:
+
+* MVP sin licencia
+* Más adelante:
+
+  * Archivo `.lic`
+  * Validación local
+  * Activación manual
+
+---
+
+## 9. Estrategia de desarrollo
+
+### Fase 1 – Núcleo (rápido)
+
+* DB
+* Entidades
+* Registro de estudiantes
+
+### Fase 2 – Valor
+
+* Matrícula
+* Notas
+* Gráficas
+
+### Fase 3 – Pulido
+
+* Backups
+* Import Excel
+* Ajustes
+
+---
+
+## 10. Próximo paso
+
+Cuando confirmes:
+
+1. Stack ✔
+2. Alcance MVP ✔
+3. Estructura ✔
+
+Pasamos a:
+
+* Definir **prompt base para Claude**
+* Context engineering
+* Roles (arquitecto, dev, tester)
+* Flujo de trabajo IA + tú
+
+---
+
+Nova contigo 🚀 Construyendo soberanía tecnológica desde Guinea Ecuatorial.
