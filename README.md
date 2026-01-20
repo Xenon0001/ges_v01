@@ -1,117 +1,196 @@
-# GES - Sistema de Gestión Escolar (Nuevo Diseño)
+# 🎓 GES – Sistema de Gestión Escolar (Offline)
 
-Sistema de gestión escolar offline-first para escuelas locales de Guinea Ecuatorial.
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![SQLite](https://img.shields.io/badge/Database-SQLite-lightgrey)
+![Desktop App](https://img.shields.io/badge/Type-Desktop%20App-green)
+![Offline First](https://img.shields.io/badge/Mode-Offline--First-orange)
+![Status](https://img.shields.io/badge/Status-En%20Desarrollo-yellow)
 
-## 🏗️ Arquitectura del Dominio
+---
 
-### Entidades Principales
+## 📌 Descripción
 
-- **School**: Institución educativa
-- **User**: Usuarios del sistema (admin, secretary, teacher)
-- **Student**: Estudiantes matriculados
-- **Tutor**: Tutores/responsables de estudiantes
-- **AcademicYear**: Años académicos con configuración
-- **Grade**: Niveles/grados educativos
-- **Course**: Asignaturas/cursos
-- **Classroom**: Aulas físicas
-- **Enrollment**: Matrículas de estudiantes
-- **Payment**: Pagos y cobros
+**GES (Sistema de Gestión Escolar)** es una aplicación de escritorio **offline-first**, desarrollada en Python, diseñada para **centros educativos con conectividad limitada**, especialmente en contextos como Guinea Ecuatorial.
 
-## 📁 Estructura del Proyecto
+El objetivo de GES es **resolver de forma práctica y robusta** la gestión diaria de:
 
+* Estudiantes
+* Matrículas
+* Pagos
+* Historial académico
+* Reportes y estadísticas
+
+Todo funcionando **sin Internet**, con datos persistentes y controlados localmente.
+
+---
+
+## ⚠️ Estado del Proyecto
+
+### 🚧 **ALERTA: PROYECTO EN DESARROLLO ACTIVO**
+
+> ⚠️ **Estado actual:** En desarrollo
+>
+> El MVP es **funcional y usable**, pero el proyecto:
+>
+> * Sigue en fase de validación
+> * Está siendo sometido a pruebas intensivas
+> * Puede recibir cambios estructurales antes de una versión estable (v1.0)
+
+✔️ Apto para pruebas
+❌ No recomendado aún para despliegue masivo sin acompañamiento técnico
+
+---
+
+## ✨ Funcionalidades Principales
+
+* 🔐 Autenticación local con roles
+* 👨‍🎓 Gestión completa de estudiantes (CRUD)
+* 📝 Matrículas con reglas de negocio
+* 💰 Registro y control de pagos
+* 📊 Gráficas y reportes académicos y financieros
+* 🗂️ Historial académico anual en JSON
+* 💾 Backups completos del sistema
+* 📤 Exportación de datos a Excel
+* ⚙️ Configuración persistente del sistema
+* 🖥️ Interfaz gráfica con CustomTkinter
+
+---
+
+## 🧱 Arquitectura
+
+GES utiliza una **arquitectura por capas**, diseñada para ser clara, mantenible y escalable:
+
+```
+UI → Services → Repositories → Database
+```
 ```
 ges_proy/
-├── app/
-│   └── domain/           # Entidades del dominio (puras)
-│       └── entities.py   # School, User, Student, etc.
-├── database/
-│   ├── models/          # Modelos SQLAlchemy
-│   │   ├── base.py      # Base común
-│   │   ├── school.py    # School, Grade, Course, etc.
-│   │   ├── person.py    # Person, User, Student, Tutor
-│   │   └── enrollment.py # Enrollment, Payment
-│   └── db.py           # Configuración y gestión
-├── test_database.py     # Pruebas de la base de datos
-└── requirements.txt     # Dependencias
+├── app/                    # Aplicación principal
+│   ├── domain/            # Entidades del dominio (puras)
+│   ├── repositories/      # Patrón Repository para acceso a datos
+│   ├── services/          # Lógica de negocio
+│   └── ui/                # Interfaz de usuario
+├── config/                # Configuración del sistema
+├── controllers/           # Controladores de la aplicación
+├── database/              # Gestión de base de datos
+│   ├── models/            # Modelos SQLAlchemy
+│   │   ├── base.py        # Base común
+│   │   ├── school.py      # School, Grade, Course, etc.
+│   │   ├── person.py      # Person, User, Student, Tutor
+│   │   └── enrollment.py  # Enrollment, Payment
+│   ├── connection.py      # Configuración de conexión
+│   ├── db.py             # Gestión y operaciones DB
+│   └── models.py         # Modelos consolidados
+├── domain/               # Entidades del dominio principales
+├── repositories/         # Implementación de repositorios
+├── services/             # Servicios de negocio
+│   ├── auth_service.py   # Autenticación y usuarios
+│   ├── grade_service.py  # Gestión de grados y cursos
+│   └── student_service.py # Gestión de estudiantes
+├── tests/                # Pruebas del sistema
+│   └── test_services_flow.py
+├── ui/                   # Componentes de interfaz
+│   ├── login_window.py   # Ventana de login
+│   └── main_window.py    # Ventana principal
+├── .ai/                  # Configuración IA
+├── .git/                 # Control de versiones
+├── .venv/                # Entorno virtual
+├── historial/            # Historial de cambios
+├── main.py               # Punto de entrada principal
+├── check_payments.py     # Utilidad de pagos
+├── test_database.py      # Pruebas de base de datos
+├── test_navigation.py    # Pruebas de navegación
+├── test_navigation_simple.py # Pruebas simples de navegación
+├── test_services.py      # Pruebas de servicios
+├── test_structure.py     # Pruebas de estructura
+├── requirements.txt      # Dependencias del proyecto
+├── .gitignore           # Archivos ignorados por Git
+└── ges_database.db      # Base de datos SQLite
 ```
 
-## 🚀 Instalación y Uso
+### Capas principales:
 
-1. **Instalar dependencias:**
+* `app/ui/` → Interfaz gráfica (CustomTkinter)
+* `app/services/` → Reglas de negocio
+* `app/repositories/` → Acceso a datos
+* `app/domain/` → Entidades puras
+* `database/` → Modelos y SQLite
+* `config/` → Configuración persistente
+* `backups/` → Copias de seguridad
+* `historial/` → Historial académico
+
+📌 **La UI no accede directamente a la base de datos.**
+
+---
+
+## 🛠️ Stack Tecnológico
+
+* **Lenguaje:** Python 3.10+
+* **UI:** CustomTkinter
+* **Base de datos:** SQLite
+* **ORM:** SQLAlchemy
+* **Gráficas:** Matplotlib
+* **Exportación:** Pandas (Excel)
+* **Persistencia:** JSON + SQLite
+* **Modo:** 100% Offline
+
+---
+
+## ▶️ Ejecución del Proyecto
+
 ```bash
-pip install -r requirements.txt
+python main.py
 ```
 
-2. **Probar base de datos:**
-```bash
-python test_database.py
-```
+### Credenciales de prueba (MVP):
 
-3. **Datos por defecto:**
-- Usuario: `admin`
-- Contraseña: `password`
+* Usuario: `admin` 
+* Contraseña: `password` 
 
-## 🔧 Características Implementadas
+---
 
-### ✅ Núcleo del Dominio
-- Entidades completas con validaciones
-- Enums para estados y roles
-- Relaciones claras entre entidades
-- Propiedades calculadas útiles
+## 🎯 Filosofía del Proyecto
 
-### ✅ Base de Datos
-- SQLAlchemy con SQLite
-- Modelo relacional completo
-- Migraciones automáticas
-- Datos de ejemplo
+GES **no intenta competir con grandes ERPs educativos online**.
 
-### ✅ Gestión de Matrículas
-- Sistema de matrícula por año académico
-- Asignación de tutores
-- Estados de matrícula (active, inactive, graduated)
+Su propósito es:
 
-### ✅ Sistema de Pagos
-- Configuración de tarifas por año
-- Estados de pago (pending, paid, overdue)
-- Control de fechas de vencimiento
+* Ser **simple**
+* Ser **robusto**
+* Ser **comprensible**
+* Resolver el **80% de los problemas reales** de un colegio local
 
-## 📋 Decisiones de Diseño
+---
 
-1. **Base SQLAlchemy única**: Evita conflictos de relaciones
-2. **Entidades puras**: Separación clara del dominio
-3. **Enums tipados**: Seguridad en estados y roles
-4. **IDs automáticos**: Generación automática de códigos
-5. **Relaciones lazy**: Optimización de consultas
+## 🚀 Roadmap (Simplificado)
 
-## 🎯 Próximos Pasos
+* [x] MVP funcional completo
+* [x] Arquitectura limpia
+* [x] UI base completa
+* [ ] Pruebas extendidas (QA)
+* [ ] Optimización de MainView y navegación
+* [ ] Empaquetado instalable
+* [ ] Versión estable v1.0
 
-1. **Servicios de negocio**: Lógica de matrícula y pagos
-2. **Repositorios**: Acceso a datos especializado
-3. **UI Moderna**: CustomTkinter para gestión
-4. **Importación Excel**: Carga masiva de datos
-5. **Reportes**: Estadísticas y exportación
+---
 
-## 🧪 Testing
+## 🧠 Autor
 
-El sistema incluye pruebas completas:
-- ✅ Creación de base de datos
-- ✅ Operaciones CRUD básicas
-- ✅ Creación de entidades
-- ✅ Relaciones entre modelos
+**Luis Rafael Eyoma**
+Desarrollador de Software (Python)
+Fundador de **Xenon.py**
+Guinea Ecuatorial 🇬🇶
 
-## 📊 Datos de Ejemplo
+> Construyendo soberanía tecnológica desde contextos reales.
 
-El sistema crea automáticamente:
-- 1 escuela (Colegio Ejemplo)
-- 1 año académico (2024-2025)
-- 1 grado (1º Primaria)
-- 1 aula (A-101)
-- 1 asignatura (Matemáticas)
-- 1 usuario admin
+---
 
-## 🔐 Seguridad
+## 📄 Licencia
 
-- Hash de contraseñas (MD5 básico, mejorar en producción)
-- Roles de usuario definidos
-- Validación de estados
-- Control de acceso por rol
+Proyecto en desarrollo.
+Licencia por definir tras la versión estable.
+
+---
+
+⚠️ **Nota final:**
+Este proyecto está en evolución activa. Cualquier feedback técnico es bienvenido.
