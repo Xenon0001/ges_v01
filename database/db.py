@@ -75,6 +75,7 @@ class DatabaseManager:
             print(f"Database connection failed: {e}")
             return False
     
+    # BORRAR EN PRODUCCIÓN --------------------------------------------------------------
     def initialize_sample_data(self):
         """Initialize sample data for testing"""
         try:

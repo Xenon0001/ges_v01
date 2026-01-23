@@ -15,8 +15,10 @@ class Sidebar:
         self.on_menu_select = on_menu_select
         self.current_menu = "home"
         self.menu_buttons = {}
+        self._initializing = True  # Flag para evitar callbacks durante init
         
         self.create_widgets()
+        self._initializing = False  # Permitir callbacks después de init
     
     def create_widgets(self):
         """Create sidebar widgets"""
@@ -61,11 +63,11 @@ class Sidebar:
     def create_menu_items(self):
         """Create navigation menu items"""
         menu_items = [
-            ("home", "Inicio", "..."), # Remplazaré los "..." por iconos cuando todo funcione
-            ("students", "Estudiantes", "..."),
-            ("enrollments", "Matrículas", "..."),
-            ("reports", "Reportes", "..."),
-            ("settings", "Ajustes", "...")
+            ("home", "Inicio", "🏠"),
+            ("students", "Estudiantes", "👥"),
+            ("enrollments", "Matrículas", "📝"),
+            ("reports", "Reportes", "📊"),
+            ("settings", "Ajustes", "⚙️")
         ]
         
         for menu_id, text, icon in menu_items:
@@ -85,8 +87,13 @@ class Sidebar:
             
             self.menu_buttons[menu_id] = button
         
-        # Seleccionar "home" por defecto
-        self.select_menu("home")
+        # Seleccionar "home" por defecto pero SIN disparar el callback
+        # Solo actualizar el estilo visual
+        if "home" in self.menu_buttons:
+            self.menu_buttons["home"].configure(
+                fg_color=("gray75", "gray25"),
+                text_color=("gray10", "gray90")
+            )
     
     def select_menu(self, menu_id: str):
         """Handle menu selection"""
@@ -106,6 +113,10 @@ class Sidebar:
                 )
         
         self.current_menu = menu_id
+        
+        # Solo llamar callback si NO estamos inicializando
+        if self._initializing:
+            return
         
         # Call callback if provided
         if self.on_menu_select:

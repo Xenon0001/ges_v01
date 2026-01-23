@@ -23,27 +23,32 @@ class MainView(ctk.CTkFrame):
         self.current_view = None
         self.current_view_name = None
         self.views = {}  # Cache de vistas
-        self.navigation_history = []  # Historial de navegación
+        self.content_frame = None  # Inicializar antes de _build_layout
         
-        self.pack(fill="both", expand=True)
+        # NO usar pack() aquí - dejar que MainApplication lo maneje
+        # self.pack(fill="both", expand=True)
         
         # Layout principal
         self._build_layout()
     
     def _build_layout(self):
         """Build main layout"""
-        self.grid_columnconfigure(1, weight=1)
+        # Configurar grid
         self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
         
-        # Sidebar (SIEMPRE VIVA)
-        self.sidebar = Sidebar(self, on_menu_select=self.show_view)
-        self.sidebar.frame.grid(row=0, column=0, sticky="ns")
-        
-        # Contenedor central (aquí van las vistas)
+        # Contenedor central PRIMERO (columna 1)
         self.content_frame = ctk.CTkFrame(self)
         self.content_frame.grid(row=0, column=1, sticky="nsew")
         self.content_frame.grid_rowconfigure(0, weight=1)
         self.content_frame.grid_columnconfigure(0, weight=1)
+        
+        # Sidebar DESPUÉS (columna 0) - así ya existe content_frame cuando se dispare el callback
+        self.sidebar = Sidebar(self, on_menu_select=self.show_view)
+        self.sidebar.frame.grid(row=0, column=0, sticky="nsew")
+        
+        # Mostrar vista home DESPUÉS de que todo esté creado
+        self.after(10, self.show_home_view)
     
     def show_view(self, view_name: str, view_class):
         """
@@ -56,63 +61,37 @@ class MainView(ctk.CTkFrame):
             self.show_home_view()
             return
         
-        # Guardar historial
-        if self.current_view_name and self.current_view_name != view_name:
-            self.navigation_history.append(self.current_view_name)
+        if view_name == "logout":
+            self.handle_logout()
+            return
         
         # Ocultar vista actual
         if self.current_view:
-            self.current_view.grid_forget()
+            self.current_view.grid_remove()
         
         # Crear vista si no existe
         if view_name not in self.views:
             view = view_class(self.content_frame)
             view.grid(row=0, column=0, sticky="nsew")
+            view.grid_remove()  # Ocultar inicialmente
             self.views[view_name] = view
         
         # Mostrar vista
         self.current_view = self.views[view_name]
         self.current_view_name = view_name
-        self.current_view.grid(row=0, column=0, sticky="nsew")
-    
-    def show_sub_view(self, sub_view_name: str, sub_view_creator):
-        """Mostrar sub-vista dentro de la vista actual"""
-        # Ocultar vista actual principal
-        if self.current_view:
-            self.current_view.grid_forget()
-        
-        # Cache de sub-vistas
-        if sub_view_name not in self.views:
-            sub_view = sub_view_creator()
-            sub_view.grid(row=0, column=0, sticky="nsew")
-            self.views[sub_view_name] = sub_view
-        
-        self.current_view = self.views[sub_view_name]
-        self.current_view.grid(row=0, column=0, sticky="nsew")
-    
-    def go_back(self):
-        """Volver a vista anterior"""
-        if self.navigation_history:
-            prev_view_name = self.navigation_history.pop()
-            # Buscar la clase de vista correspondiente
-            view_classes = {
-                "students": StudentsView,
-                "enrollments": EnrollmentsView,
-                "reports": ReportsView,
-                "settings": SettingsView
-            }
-            
-            if prev_view_name in view_classes:
-                self.show_view(prev_view_name, view_classes[prev_view_name])
-            else:
-                self.show_home_view()
+        self.current_view.grid()
     
     def show_home_view(self):
         """Show home dashboard"""
+        # Ocultar vista actual
+        if self.current_view:
+            self.current_view.grid_remove()
+        
         # Crear vista home si no existe
         if "home" not in self.views:
             home_frame = ctk.CTkFrame(self.content_frame)
             home_frame.grid(row=0, column=0, sticky="nsew")
+            home_frame.grid_remove()  # Ocultar inicialmente
             
             # Welcome message
             welcome_label = ctk.CTkLabel(
@@ -134,13 +113,10 @@ class MainView(ctk.CTkFrame):
             instructions_text = """
             Use el menú lateral para navegar:
             
-            Estudiantes - Gestión de estudiantes
-
-            Matrículas - Matrículas y pagos
-
-            Reportes - Gráficas e historial
-
-            Ajustes - Configuración del sistema
+            📚 Estudiantes - Gestión de estudiantes
+            📝 Matrículas - Matrículas y pagos
+            📊 Reportes - Gráficas e historial
+            ⚙️ Ajustes - Configuración del sistema
             """
             
             instructions_label = ctk.CTkLabel(
@@ -154,11 +130,9 @@ class MainView(ctk.CTkFrame):
             self.views["home"] = home_frame
         
         # Mostrar vista home
-        if self.current_view:
-            self.current_view.grid_forget()
-        
         self.current_view = self.views["home"]
-        self.current_view.grid(row=0, column=0, sticky="nsew")
+        self.current_view_name = "home"
+        self.current_view.grid()
     
     def show_students_view(self):
         """Show students management view"""
@@ -208,8 +182,9 @@ class MainApplication:
         # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.handle_close)
         
-        # Create main view
+        # Create main view - USAR PACK AQUÍ
         main_view = MainView(self.root, self.current_user)
+        main_view.pack(fill="both", expand=True)
         
         # Start window
         self.root.mainloop()

@@ -25,9 +25,9 @@
   },
   "system": {
     "version": "1.0.0",
-    "first_run": true,
+    "first_run": false,
     "last_backup_date": null,
     "data_migration_version": "1.0.0",
-    "last_saved": "2026-01-20T13:42:06.958533"
+    "last_saved": "2026-01-23T13:44:06.879813"
   }
 }
