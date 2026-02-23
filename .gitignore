@@ -23,3 +23,5 @@ instance/
 Thumbs.db
 .vscode/
 .idea/
+# --- LOCAL ---
+/.ia
