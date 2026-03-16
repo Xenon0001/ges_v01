@@ -6,10 +6,10 @@ Diseño profesional e institucional
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Callable, Dict, Any, Optional
-import hashlib
 
 from database.repository import user_repo
 from database.models import DatabaseModels
+from utils.helpers import hash_password
 
 
 class LoginWindow:
@@ -269,10 +269,6 @@ class LoginWindow:
             return False
         
         return True
-    
-    def hash_password(self, password: str) -> str:
-        """Hashea la contraseña usando SHA-256"""
-        return hashlib.sha256(password.encode()).hexdigest()
     
     def login(self):
         """Procesa el login"""
