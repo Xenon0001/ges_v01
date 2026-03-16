@@ -113,13 +113,11 @@ class StudentRepository(BaseRepository):
         return db.execute_query(query, (pattern, pattern))
     
     def get_with_classroom(self, student_id: int) -> Optional[Dict[str, Any]]:
-        """Obtiene estudiante con información del aula"""
+        """Obtiene estudiante con información del aula (versión simplificada)"""
         query = f"""
-            SELECT s.*, c.name as classroom_name, g.name as grade_name, l.name as level_name
-            FROM {self.table} s
+            SELECT s.*, c.name as classroom_name, c.shift as classroom_shift
+            FROM {self.table_name} s
             LEFT JOIN {TABLES['classrooms']} c ON s.classroom_id = c.id
-            LEFT JOIN {TABLES['grades']} g ON c.grade_id = g.id
-            LEFT JOIN {TABLES['levels']} l ON g.level_id = l.id
             WHERE s.id = ?
         """
         results = db.execute_query(query, (student_id,))

@@ -122,14 +122,14 @@ class FinanceService:
         return self.payment_repo.get_by_student(student_id)
     
     def get_student_financial_summary(self, student_id: int) -> Dict[str, Any]:
-        """Obtiene resumen financiero completo de un estudiante"""
+        """Obtiene resumen financiero de un estudiante"""
         
-        # Información del estudiante
-        student = self.student_repo.get_with_classroom(student_id)
+        # Obtener estudiante (versión simplificada)
+        student = self.student_repo.get_by_id(student_id)
         if not student:
-            return {'error': 'Estudiante no encontrado'}
+            raise ValueError(f"Estudiante con ID {student_id} no encontrado")
         
-        # Métricas financieras
+        # Calcular métricas financieras
         metrics = self.engine.calculate_financial_metrics(
             student_id, self.get_student_payments(student_id)
         )
@@ -140,7 +140,7 @@ class FinanceService:
         # Detalles de pagos
         payments = self.get_student_payments(student_id)
         
-        return {
+        summary = {
             'student_info': student,
             'financial_metrics': metrics,
             'alerts': alerts,
@@ -148,6 +148,8 @@ class FinanceService:
             'payment_status': self._determine_payment_status(metrics),
             'risk_level': self._calculate_financial_risk(metrics)
         }
+        
+        return summary
     
     def get_overdue_payments(self) -> List[Dict[str, Any]]:
         """Obtiene pagos vencidos"""

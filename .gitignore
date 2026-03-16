@@ -24,4 +24,5 @@ Thumbs.db
 .vscode/
 .idea/
 # --- LOCAL ---
-/.ia
+.ia/
+*.json

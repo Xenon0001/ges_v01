@@ -45,8 +45,8 @@ class StudentService:
         return student_id
     
     def get_student(self, student_id: int) -> Optional[Dict[str, Any]]:
-        """Obtiene un estudiante con información completa"""
-        return self.student_repo.get_with_classroom(student_id)
+        """Obtiene un estudiante con información básica"""
+        return self.student_repo.get_by_id(student_id)
     
     def update_student(self, student_id: int, data: Dict[str, Any]) -> bool:
         """Actualiza datos de un estudiante"""
