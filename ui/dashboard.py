@@ -563,7 +563,12 @@ class DashboardWindow:
         if not self._check_permission("Secretaria"):
             messagebox.showwarning("Acceso Denegado", "No tienes permisos para acceder a los reportes.")
             return
-        messagebox.showinfo("En Desarrollo", "Módulo de Reportes en desarrollo")
+        
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        
+        from ui.reports_view import ReportsView
+        ReportsView(self.scrollable_frame, self.config)
     
     def show_settings(self):
         """Muestra la configuración"""
