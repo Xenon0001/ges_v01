@@ -341,14 +341,51 @@ class AcademicView:
         self.materias_tree.column('TasaAprobacion', width=150, minwidth=120)
         self.materias_tree.column('EstudiantesRiesgo', width=180, minwidth=150)
         
-        # Empaquetar
-        self.materias_tree.grid(row=0, column=0, sticky='nsew')
-        vsb.grid(row=0, column=1, sticky='ns')
-        hsb.grid(row=1, column=0, sticky='ew')
+        # Empaquetar con pack
+        self.materias_tree.pack(side='left', fill='both', expand=True)
+        vsb.pack(side='right', fill='y')
+        hsb.pack(side='bottom', fill='x')
+    
+    
+    def create_aulas_table(self):
+        """Crea la tabla de estudiantes del aula"""
+        table_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
+        table_frame.pack(fill='both', expand=True)
         
-        # Configurar grid
-        table_frame.grid_rowconfigure(0, weight=1)
-        table_frame.grid_columnconfigure(0, weight=1)
+        info_label = tk.Label(
+            table_frame,
+            text="📋 Mostrando: estudiantes en riesgo y mejores desempeños",
+            font=('Segoe UI', 10, 'italic'),
+            fg='#7f8c8d',
+            bg='white'
+        )
+        info_label.pack(pady=(10, 5))
+        
+        vsb = ttk.Scrollbar(table_frame, orient='vertical')
+        hsb = ttk.Scrollbar(table_frame, orient='horizontal')
+        
+        self.aulas_tree = ttk.Treeview(
+            table_frame,
+            columns=('Nombre', 'Apellido', 'Promedio', 'EstadoAcademico'),
+            show='headings',
+            yscrollcommand=vsb.set,
+            xscrollcommand=hsb.set
+        )
+        
+        self.aulas_tree.heading('Nombre', text='Nombre')
+        self.aulas_tree.heading('Apellido', text='Apellido')
+        self.aulas_tree.heading('Promedio', text='Promedio')
+        self.aulas_tree.heading('EstadoAcademico', text='Estado Académico')
+        
+        self.aulas_tree.column('Nombre', width=150, minwidth=120)
+        self.aulas_tree.column('Apellido', width=150, minwidth=120)
+        self.aulas_tree.column('Promedio', width=100, minwidth=80)
+        self.aulas_tree.column('EstadoAcademico', width=180, minwidth=150)
+        
+        self.aulas_tree.pack(side='left', fill='both', expand=True)
+        vsb.pack(side='right', fill='y')
+        hsb.pack(side='bottom', fill='x')
+    
     
     def load_materias_data(self):
         """Carga los datos de materias"""
@@ -407,6 +444,7 @@ class AcademicView:
             print(f"Error cargando datos de materias: {e}")
             self.show_no_data_message("Error al cargar los datos. Por favor, intente nuevamente.")
     
+    
     def populate_materias_table(self, subjects_data):
         """Llena la tabla con datos de materias"""
         # Limpiar tabla
@@ -456,14 +494,243 @@ class AcademicView:
     
     def show_aulas_section(self):
         """Muestra la sección de rendimiento por aula"""
-        placeholder = tk.Label(
-            self.content_frame,
-            text="🏫 Rendimiento por Aula - En implementación...",
-            font=('Segoe UI', 16),
-            fg='#7f8c8d',
-            bg='#ecf0f1'
+        # Header de la sección
+        header_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
+        header_frame.pack(fill='x', pady=(0, 10))
+        
+        # Título y filtros
+        title_frame = tk.Frame(header_frame, bg='white')
+        title_frame.pack(fill='x', padx=20, pady=15)
+        
+        title_label = tk.Label(
+            title_frame,
+            text="🏫 Rendimiento por Aula",
+            font=('Segoe UI', 16, 'bold'),
+            fg='#2c3e50',
+            bg='white'
         )
-        placeholder.pack(pady=50)
+        title_label.pack(side='left')
+        
+        # Filtros
+        filter_frame = tk.Frame(title_frame, bg='white')
+        filter_frame.pack(side='right')
+        
+        # Selector de aula
+        tk.Label(filter_frame, text="Aula:", font=('Segoe UI', 10), bg='white').pack(side='left', padx=(0, 5))
+        
+        self.classroom_var = tk.StringVar()
+        self.classroom_combo = ttk.Combobox(
+            filter_frame,
+            textvariable=self.classroom_var,
+            font=('Segoe UI', 10),
+            width=20,
+            state='readonly'
+        )
+        self.classroom_combo.pack(side='left', padx=(0, 15))
+        self.classroom_combo.bind('<<ComboboxSelected>>', lambda e: self.load_aulas_data())
+        
+        # Filtro por trimestre
+        tk.Label(filter_frame, text="Trimestre:", font=('Segoe UI', 10), bg='white').pack(side='left', padx=(0, 5))
+        
+        self.aulas_trimester_var = tk.StringVar(value="Todos")
+        trimester_combo = ttk.Combobox(
+            filter_frame,
+            textvariable=self.aulas_trimester_var,
+            values=["Todos", "1", "2", "3"],
+            font=('Segoe UI', 10),
+            width=10,
+            state='readonly'
+        )
+        trimester_combo.pack(side='left')
+        trimester_combo.bind('<<ComboboxSelected>>', lambda e: self.load_aulas_data())
+        
+        # Cargar aulas disponibles
+        self.load_classrooms()
+        
+        # Tarjetas de métricas
+        self.create_aulas_metric_cards()
+        
+        # Tabla de estudiantes del aula
+        self.create_aulas_table()
+        
+        # Cargar datos iniciales si hay aula seleccionada
+        if self.classroom_var.get():
+            self.load_aulas_data()
+    
+    def load_classrooms(self):
+        """Carga las aulas disponibles en el dropdown"""
+        try:
+            classrooms = classroom_repo.get_all()
+            if not classrooms:
+                self.show_no_data_message_aulas("No hay aulas registradas en el sistema")
+                return
+            
+            classroom_options = [f"{c['id']} - {c['name']}" for c in classrooms]
+            self.classroom_combo['values'] = classroom_options
+            
+            # Seleccionar primera aula por defecto
+            if classroom_options:
+                self.classroom_var.set(classroom_options[0])
+                self.current_classrooms = classrooms
+            else:
+                self.current_classrooms = []
+                
+        except Exception as e:
+            print(f"Error cargando aulas: {e}")
+            self.show_no_data_message_aulas("Error al cargar las aulas")
+    
+    def create_aulas_metric_cards(self):
+        """Crea las tarjetas de métricas para aulas"""
+        cards_frame = tk.Frame(self.content_frame, bg='#ecf0f1')
+        cards_frame.pack(fill='x', pady=(0, 10))
+        
+        # Tarjeta: Total Estudiantes
+        self.total_students_card = self.create_metric_card(
+            cards_frame,
+            "👥 Total Estudiantes",
+            "0",
+            "#3498db",
+            0
+        )
+        
+        # Tarjeta: Promedio del Aula
+        self.classroom_avg_card = self.create_metric_card(
+            cards_frame,
+            "📈 Promedio del Aula", 
+            "0.0",
+            "#27ae60",
+            1
+        )
+        
+        # Tarjeta: Estudiantes en Riesgo
+        self.at_risk_card = self.create_metric_card(
+            cards_frame,
+            "⚠️ Estudiantes en Riesgo",
+            "0",
+            "#e74c3c",
+            2
+        )
+    
+    def load_aulas_data(self):
+        """Carga los datos del aula seleccionada"""
+        try:
+            # Validar que hay aula seleccionada
+            if not self.classroom_var.get():
+                self.show_no_data_message_aulas("Por favor seleccione un aula")
+                return
+            
+            # Extraer ID del aula seleccionada
+            classroom_text = self.classroom_var.get()
+            if ' - ' not in classroom_text:
+                self.show_no_data_message_aulas("Formato de aula inválido")
+                return
+            
+            classroom_id = int(classroom_text.split(' - ')[0])
+            
+            # Obtener filtro de trimestre
+            trimestre_filter = self.aulas_trimester_var.get()
+            trimester_param = None if trimestre_filter == "Todos" else int(trimestre_filter)
+            
+            # Obtener datos del aula
+            classroom_data = self.academic_service.get_classroom_academic_summary(
+                classroom_id, self.academic_year, trimester_param
+            )
+            
+            if 'error' in classroom_data:
+                self.show_no_data_message_aulas(classroom_data['error'])
+                return
+            
+            # Actualizar tabla
+            self.populate_aulas_table(classroom_data)
+            
+            # Actualizar métricas
+            self.update_aulas_metrics(classroom_data)
+            
+        except ValueError:
+            self.show_no_data_message_aulas("Error en el formato del aula seleccionada")
+        except Exception as e:
+            print(f"Error cargando datos del aula: {e}")
+            self.show_no_data_message_aulas("Error al cargar los datos del aula. Por favor, intente nuevamente.")
+    
+    def populate_aulas_table(self, classroom_data):
+        """Llena la tabla con datos de estudiantes del aula"""
+        # Limpiar tabla
+        for item in self.aulas_tree.get_children():
+            self.aulas_tree.delete(item)
+        
+        # Obtener lista de estudiantes
+        students_at_risk = classroom_data.get('students_at_risk', [])
+        top_performers = classroom_data.get('top_performers', [])
+        
+        # Combinar todos los estudiantes mencionados
+        all_students = []
+        
+        # Agregar estudiantes en riesgo
+        for student_data in students_at_risk:
+            student_info = student_data.get('student_info', {})
+            all_students.append({
+                'name': student_info.get('first_name', ''),
+                'last_name': student_info.get('last_name', ''),
+                'average': student_data.get('average', 0),
+                'status': 'Riesgo'
+            })
+        
+        # Agregar mejores desempeños
+        for student_data in top_performers:
+            student_info = student_data.get('student_info', {})
+            all_students.append({
+                'name': student_info.get('first_name', ''),
+                'last_name': student_info.get('last_name', ''),
+                'average': student_data.get('average', 0),
+                'status': 'Excelente'
+            })
+        
+        # Ordenar por promedio descendente
+        all_students.sort(key=lambda x: x['average'] if x['average'] else 0, reverse=True)
+        
+        # Agregar estudiantes a la tabla
+        for student in all_students:
+            status_text = student['status']
+            
+            if student['status'] == 'Riesgo':
+                status_text = f"⚠️ {student['status']}"
+            elif student['status'] == 'Excelente':
+                status_text = f"🏆 {student['status']}"
+            
+            self.aulas_tree.insert('', 'end', values=(
+                student['name'],
+                student['last_name'],
+                f"{student['average']:.2f}" if student['average'] else "N/A",
+                status_text
+            ))
+    
+    def update_aulas_metrics(self, classroom_data):
+        """Actualiza las tarjetas de métricas del aula"""
+        # Total estudiantes
+        total_students = classroom_data.get('total_students', 0)
+        self.total_students_card.config(text=str(total_students))
+        
+        # Promedio del aula
+        performance_metrics = classroom_data.get('performance_metrics', {})
+        classroom_avg = performance_metrics.get('classroom_average', 0)
+        self.classroom_avg_card.config(text=f"{classroom_avg:.2f}" if classroom_avg else "N/A")
+        
+        # Estudiantes en riesgo
+        students_at_risk = performance_metrics.get('students_at_risk', 0)
+        self.at_risk_card.config(text=str(students_at_risk))
+    
+    def show_no_data_message_aulas(self, message: str):
+        """Muestra un mensaje cuando no hay datos para aulas"""
+        # Limpiar solo la tabla
+        if hasattr(self, 'aulas_tree'):
+            for item in self.aulas_tree.get_children():
+                self.aulas_tree.delete(item)
+        
+        # Insertar fila de mensaje en la tabla
+        if hasattr(self, 'aulas_tree'):
+            self.aulas_tree.insert('', 'end', values=(
+                message, '', '', ''
+            ))
     
     def show_estudiantes_section(self):
         """Muestra la sección de calificaciones por estudiante"""
