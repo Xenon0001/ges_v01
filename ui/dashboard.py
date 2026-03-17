@@ -537,7 +537,14 @@ class DashboardWindow:
         if not self._check_permission("Usuario"):
             messagebox.showwarning("Acceso Denegado", "No tienes permisos para acceder a la gestión académica.")
             return
-        messagebox.showinfo("En Desarrollo", "Módulo Académico en desarrollo")
+        
+        # Limpiar contenido actual
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        
+        # Importar y cargar vista
+        from ui.academic_view import AcademicView
+        AcademicView(self.scrollable_frame, self.config, self.academic_service)
     
     def show_finances(self):
         """Muestra la vista financiera"""
