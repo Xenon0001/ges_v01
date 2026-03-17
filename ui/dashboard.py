@@ -523,7 +523,14 @@ class DashboardWindow:
         if not self._check_permission("Secretaria"):
             messagebox.showwarning("Acceso Denegado", "No tienes permisos para gestionar estudiantes.")
             return
-        messagebox.showinfo("En Desarrollo", "Módulo de Estudiantes en desarrollo")
+        
+        # Limpiar contenido actual
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        
+        # Importar y cargar vista
+        from ui.students_view import StudentsView
+        StudentsView(self.scrollable_frame, self.config, self.student_service)
     
     def show_academic(self):
         """Muestra la vista académica"""

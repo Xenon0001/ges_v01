@@ -15,10 +15,11 @@ from database.repository import classroom_repo
 class StudentsView:
     """Vista de gestión de estudiantes"""
     
-    def __init__(self, parent: tk.Frame, config: Dict[str, Any]):
+    def __init__(self, parent: tk.Frame, config: Dict[str, Any], 
+                 student_service=None):
         self.parent = parent
         self.config = config
-        self.student_service = StudentService()
+        self.student_service = student_service if student_service else StudentService()
         
         # Estado
         self.current_students = []
