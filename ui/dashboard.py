@@ -551,7 +551,12 @@ class DashboardWindow:
         if not self._check_permission("Secretaria"):
             messagebox.showwarning("Acceso Denegado", "No tienes permisos para acceder a las finanzas.")
             return
-        messagebox.showinfo("En Desarrollo", "Módulo de Finanzas en desarrollo")
+        
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        
+        from ui.finance_view import FinanceView
+        FinanceView(self.scrollable_frame, self.config, self.finance_service)
     
     def show_reports(self):
         """Muestra la vista de reportes"""
