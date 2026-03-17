@@ -1228,11 +1228,272 @@ class AcademicView:
     
     def show_alertas_section(self):
         """Muestra la sección de alertas académicas"""
-        placeholder = tk.Label(
-            self.content_frame,
-            text="⚠️ Alertas Académicas - En implementación...",
-            font=('Segoe UI', 16),
-            fg='#7f8c8d',
-            bg='#ecf0f1'
+        # Header de la sección
+        header_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
+        header_frame.pack(fill='x', pady=(0, 10))
+        
+        # Título y filtros
+        title_frame = tk.Frame(header_frame, bg='white')
+        title_frame.pack(fill='x', padx=20, pady=15)
+        
+        title_label = tk.Label(
+            title_frame,
+            text="⚠️ Alertas Académicas",
+            font=('Segoe UI', 16, 'bold'),
+            fg='#2c3e50',
+            bg='white'
         )
-        placeholder.pack(pady=50)
+        title_label.pack(side='left')
+        
+        # Filtros
+        filter_frame = tk.Frame(title_frame, bg='white')
+        filter_frame.pack(side='right')
+        
+        tk.Label(filter_frame, text="Tipo:", font=('Segoe UI', 10), bg='white').pack(side='left', padx=(0, 5))
+        
+        self.alertas_filter_var = tk.StringVar(value="Todos")
+        filter_combo = ttk.Combobox(
+            filter_frame,
+            textvariable=self.alertas_filter_var,
+            values=["Todos", "Rendimiento", "Morosidad", "Abandono"],
+            font=('Segoe UI', 10),
+            width=15,
+            state='readonly'
+        )
+        filter_combo.pack(side='left')
+        filter_combo.bind('<<ComboboxSelected>>', lambda e: self.load_alertas_data())
+        
+        # Botón de refrescar
+        refresh_btn = tk.Button(
+            filter_frame,
+            text="🔄",
+            font=('Segoe UI', 10),
+            bg='#95a5a6',
+            fg='white',
+            relief='flat',
+            cursor='hand2',
+            command=self.load_alertas_data
+        )
+        refresh_btn.pack(side='left', padx=(10, 0))
+        
+        # Tarjetas de métricas
+        self.create_alertas_metric_cards()
+        
+        # Tabla de alertas
+        self.create_alertas_table()
+        
+        # Cargar datos iniciales
+        self.load_alertas_data()
+    
+    def create_alertas_metric_cards(self):
+        """Crea las tarjetas de métricas para alertas"""
+        cards_frame = tk.Frame(self.content_frame, bg='#ecf0f1')
+        cards_frame.pack(fill='x', pady=(0, 10))
+        
+        # Tarjeta: Total Alertas
+        self.total_alertas_card = self.create_metric_card(
+            cards_frame,
+            "🚨 Total Alertas",
+            "0",
+            "#e67e22",
+            0
+        )
+        
+        # Tarjeta: Alertas Críticas
+        self.critical_alertas_card = self.create_metric_card(
+            cards_frame,
+            "⚠️ Alertas Críticas",
+            "0",
+            "#e74c3c",
+            1
+        )
+        
+        # Tarjeta: Estudiantes en Riesgo
+        self.students_risk_card = self.create_metric_card(
+            cards_frame,
+            "👥 Estudiantes en Riesgo",
+            "0",
+            "#f39c12",
+            2
+        )
+    
+    def create_alertas_table(self):
+        """Crea la tabla de alertas"""
+        # Frame de la tabla
+        table_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
+        table_frame.pack(fill='both', expand=True)
+        
+        # Scrollbars
+        vsb = ttk.Scrollbar(table_frame, orient='vertical')
+        hsb = ttk.Scrollbar(table_frame, orient='horizontal')
+        
+        # Treeview (tabla)
+        self.alertas_tree = ttk.Treeview(
+            table_frame,
+            columns=('Estudiante', 'Tipo', 'Severidad', 'Mensaje'),
+            show='headings',
+            yscrollcommand=vsb.set,
+            xscrollcommand=hsb.set
+        )
+        
+        # Configurar columnas
+        self.alertas_tree.heading('Estudiante', text='Estudiante')
+        self.alertas_tree.heading('Tipo', text='Tipo')
+        self.alertas_tree.heading('Severidad', text='Severidad')
+        self.alertas_tree.heading('Mensaje', text='Mensaje')
+        
+        # Configurar anchos
+        self.alertas_tree.column('Estudiante', width=200, minwidth=150)
+        self.alertas_tree.column('Tipo', width=120, minwidth=100)
+        self.alertas_tree.column('Severidad', width=100, minwidth=80)
+        self.alertas_tree.column('Mensaje', width=300, minwidth=250)
+        
+        # Empaquetar con pack
+        self.alertas_tree.pack(side='left', fill='both', expand=True)
+        vsb.pack(side='right', fill='y')
+        hsb.pack(side='bottom', fill='x')
+    
+    def load_alertas_data(self):
+        """Carga los datos de alertas académicas"""
+        try:
+            # Obtener datos del dashboard académico
+            dashboard_data = self.academic_service.get_academic_dashboard_data(self.academic_year)
+            
+            if 'error' in dashboard_data:
+                self.show_alertas_message("Error al cargar las alertas académicas")
+                return
+            
+            # Extraer alertas
+            critical_alerts = dashboard_data.get('critical_alerts', [])
+            academic_alerts = dashboard_data.get('academic_alerts', [])
+            
+            # Combinar todas las alertas
+            all_alerts = []
+            
+            # Procesar alertas críticas
+            for alert in critical_alerts:
+                student_info = alert.get('student_info', {})
+                alert_data = {
+                    'student_name': f"{student_info.get('first_name', '')} {student_info.get('last_name', '')}",
+                    'type': alert.get('type', 'Rendimiento'),
+                    'severity': 'Crítica',
+                    'message': alert.get('message', 'Alerta crítica detectada'),
+                    'alert_type': 'critical'
+                }
+                all_alerts.append(alert_data)
+            
+            # Procesar alertas académicas
+            for alert in academic_alerts:
+                student_info = alert.get('student_info', {})
+                alert_data = {
+                    'student_name': f"{student_info.get('first_name', '')} {student_info.get('last_name', '')}",
+                    'type': alert.get('type', 'Rendimiento'),
+                    'severity': alert.get('severity', 'Media'),
+                    'message': alert.get('message', 'Alerta académica detectada'),
+                    'alert_type': 'academic'
+                }
+                all_alerts.append(alert_data)
+            
+            # Filtrar por tipo si es necesario
+            filter_type = self.alertas_filter_var.get()
+            if filter_type != "Todos":
+                # Mapear filtro a tipos de alerta
+                type_mapping = {
+                    "Rendimiento": ["rendimiento", "academic", "bajo rendimiento", "riesgo académico"],
+                    "Morosidad": ["morosidad", "pago", "cuota"],
+                    "Abandono": ["abandono", "inasistencia", "deserción"]
+                }
+                
+                filtered_alerts = []
+                for alert in all_alerts:
+                    alert_type_lower = alert['type'].lower()
+                    if filter_type in type_mapping:
+                        for keyword in type_mapping[filter_type]:
+                            if keyword in alert_type_lower:
+                                filtered_alerts.append(alert)
+                                break
+                
+                all_alerts = filtered_alerts
+            
+            # Actualizar tabla
+            self.populate_alertas_table(all_alerts)
+            
+            # Actualizar métricas
+            self.update_alertas_metrics(all_alerts, critical_alerts, academic_alerts)
+            
+        except Exception as e:
+            print(f"Error cargando alertas académicas: {e}")
+            self.show_alertas_message("Error al cargar las alertas académicas")
+    
+    def populate_alertas_table(self, alerts):
+        """Llena la tabla con datos de alertas"""
+        # Limpiar tabla
+        for item in self.alertas_tree.get_children():
+            self.alertas_tree.delete(item)
+        
+        if not alerts:
+            self.alertas_tree.insert('', 'end', values=(
+                "No hay alertas activas", "", "", ""
+            ))
+            return
+        
+        # Agregar alertas
+        for alert in alerts:
+            # Formatear severidad con colores
+            severity_text = alert['severity']
+            if alert['severity'] == 'Crítica':
+                severity_text = f"🔴 {alert['severity']}"
+            elif alert['severity'] in ['Alta', 'Media']:
+                severity_text = f"🟡 {alert['severity']}"
+            else:
+                severity_text = f"🟢 {alert['severity']}"
+            
+            # Formatear tipo
+            type_text = alert['type']
+            if alert['type'].lower() in ['rendimiento', 'academic']:
+                type_text = "📚 Rendimiento"
+            elif 'morosidad' in alert['type'].lower() or 'pago' in alert['type'].lower():
+                type_text = "💰 Morosidad"
+            elif 'abandono' in alert['type'].lower() or 'inasistencia' in alert['type'].lower():
+                type_text = "🚪 Abandono"
+            
+            self.alertas_tree.insert('', 'end', values=(
+                alert['student_name'],
+                type_text,
+                severity_text,
+                alert['message']
+            ))
+    
+    def update_alertas_metrics(self, all_alerts, critical_alerts, academic_alerts):
+        """Actualiza las tarjetas de métricas de alertas"""
+        # Total alertas
+        total_alerts = len(all_alerts)
+        self.total_alertas_card.config(text=str(total_alerts))
+        
+        # Alertas críticas
+        critical_count = len(critical_alerts)
+        self.critical_alertas_card.config(text=str(critical_count))
+        
+        # Estudiantes en riesgo (únicos)
+        risk_students = set()
+        for alert in all_alerts:
+            # Extraer nombre del estudiante
+            student_name = alert['student_name']
+            if student_name and student_name != "Desconocido":
+                risk_students.add(student_name)
+        
+        students_risk_count = len(risk_students)
+        self.students_risk_card.config(text=str(students_risk_count))
+    
+    def show_alertas_message(self, message: str):
+        """Muestra un mensaje cuando no hay datos de alertas"""
+        # Limpiar solo la tabla
+        if hasattr(self, 'alertas_tree'):
+            for item in self.alertas_tree.get_children():
+                self.alertas_tree.delete(item)
+        
+        # Insertar fila de mensaje en la tabla
+        if hasattr(self, 'alertas_tree'):
+            self.alertas_tree.insert('', 'end', values=(
+                message, '', '', ''
+            ))
