@@ -282,7 +282,6 @@ class DashboardWindow:
     
     def create_main_content(self):
         """Crea el contenido principal"""
-        # Scrollable frame
         canvas = tk.Canvas(self.content_frame, bg='#ecf0f1')
         scrollbar = ttk.Scrollbar(self.content_frame, orient='vertical', command=canvas.yview)
         self.scrollable_frame = tk.Frame(canvas, bg='#ecf0f1')
@@ -292,8 +291,20 @@ class DashboardWindow:
             lambda e: canvas.configure(scrollregion=canvas.bbox('all'))
         )
         
-        canvas.create_window((0, 0), window=self.scrollable_frame, anchor='nw')
+        self.canvas_window = canvas.create_window((0, 0), window=self.scrollable_frame, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # NUEVO: actualizar solo ancho del scrollable_frame cuando el canvas cambie de tamaño
+        canvas.bind('<Configure>', lambda e: canvas.itemconfig(
+            self.canvas_window,
+            width=e.width,
+            height=max(e.height, self.scrollable_frame.winfo_reqheight())
+        ))
+        
+        # NUEVO: habilitar scroll con rueda del ratón
+        canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(
+            int(-1*(e.delta/120)), "units"
+        ))
         
         canvas.pack(side='left', fill='both', expand=True)
         scrollbar.pack(side='right', fill='y')

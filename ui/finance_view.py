@@ -139,8 +139,13 @@ class FinanceView:
             lambda e: canvas.configure(scrollregion=canvas.bbox('all'))
         )
         
-        canvas.create_window((0, 0), window=self.content_frame, anchor='nw')
+        self.content_canvas_window = canvas.create_window((0, 0), window=self.content_frame, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.bind('<Configure>', lambda e: (
+            canvas.itemconfig(self.content_canvas_window, width=e.width),
+            canvas.itemconfig(self.content_canvas_window, height=e.height)
+        ))
         
         canvas.pack(side='left', fill='both', expand=True)
         scrollbar.pack(side='right', fill='y')
@@ -533,9 +538,24 @@ class FinanceView:
     
     def create_student_info(self, parent):
         """Crea el área de información del estudiante seleccionado"""
+        # Canvas con scroll para el panel derecho
+        canvas = tk.Canvas(parent, bg='white')
+        scrollbar = ttk.Scrollbar(parent, orient='vertical', command=canvas.yview)
+        
+        scroll_frame = tk.Frame(canvas, bg='white')
+        scroll_frame.bind('<Configure>', 
+            lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+        
+        canvas.create_window((0, 0), window=scroll_frame, anchor='nw')
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side='left', fill='both', expand=True)
+        scrollbar.pack(side='right', fill='y')
+        
+        # Todo el contenido existente va dentro de scroll_frame, no de parent
         # Título
         title_label = tk.Label(
-            parent,
+            scroll_frame,
             text="Información del Estudiante",
             font=('Segoe UI', 12, 'bold'),
             fg='#2c3e50',
@@ -544,7 +564,7 @@ class FinanceView:
         title_label.pack(pady=15, padx=15)
         
         # Frame de información
-        info_frame = tk.Frame(parent, bg='white')
+        info_frame = tk.Frame(scroll_frame, bg='white')
         info_frame.pack(fill='x', padx=15, pady=(0, 10))
         
         # Nombre del estudiante
@@ -577,12 +597,12 @@ class FinanceView:
         self.student_status_label.pack(anchor='w', pady=(0, 10))
         
         # Separador
-        separator = ttk.Separator(parent, orient='horizontal')
+        separator = ttk.Separator(scroll_frame, orient='horizontal')
         separator.pack(fill='x', padx=15, pady=10)
         
         # Tabla de pagos del estudiante
         payments_label = tk.Label(
-            parent,
+            scroll_frame,
             text="Pagos del Estudiante",
             font=('Segoe UI', 11, 'bold'),
             fg='#2c3e50',
@@ -591,7 +611,7 @@ class FinanceView:
         payments_label.pack(pady=(10, 5), padx=15)
         
         # Frame para tabla de pagos
-        payments_table_frame = tk.Frame(parent, bg='white')
+        payments_table_frame = tk.Frame(scroll_frame, bg='white')
         payments_table_frame.pack(fill='both', expand=True, padx=15, pady=(0, 10))
         
         # Treeview de pagos
@@ -617,7 +637,7 @@ class FinanceView:
         self.payments_tree.pack(fill='both', expand=True)
         
         # Formulario de registro de pago
-        self.create_payment_form(parent)
+        self.create_payment_form(scroll_frame)
     
     def create_payment_form(self, parent):
         """Crea el formulario para registrar pagos"""

@@ -139,8 +139,13 @@ class AcademicView:
             lambda e: canvas.configure(scrollregion=canvas.bbox('all'))
         )
         
-        canvas.create_window((0, 0), window=self.content_frame, anchor='nw')
+        self.content_canvas_window = canvas.create_window((0, 0), window=self.content_frame, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.bind('<Configure>', lambda e: (
+            canvas.itemconfig(self.content_canvas_window, width=e.width),
+            canvas.itemconfig(self.content_canvas_window, height=e.height)
+        ))
         
         canvas.pack(side='left', fill='both', expand=True)
         scrollbar.pack(side='right', fill='y')
