@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from services.academic_service import AcademicService
-from database.repository import subject_repo, classroom_repo, student_repo
+from database.repository import subject_repo, classroom_repo, student_repo, teacher_repo
 
 
 class AcademicView:
@@ -734,14 +734,497 @@ class AcademicView:
     
     def show_estudiantes_section(self):
         """Muestra la sección de calificaciones por estudiante"""
-        placeholder = tk.Label(
+        # Header de la sección
+        header_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
+        header_frame.pack(fill='x', pady=(0, 10))
+        
+        # Título y buscador
+        title_frame = tk.Frame(header_frame, bg='white')
+        title_frame.pack(fill='x', padx=20, pady=15)
+        
+        title_label = tk.Label(
+            title_frame,
+            text="👨‍🎓 Calificaciones por Estudiante",
+            font=('Segoe UI', 16, 'bold'),
+            fg='#2c3e50',
+            bg='white'
+        )
+        title_label.pack(side='left')
+        
+        # Buscador de estudiantes
+        search_frame = tk.Frame(title_frame, bg='white')
+        search_frame.pack(side='right')
+        
+        tk.Label(search_frame, text="Buscar:", font=('Segoe UI', 10), bg='white').pack(side='left', padx=(0, 5))
+        
+        self.student_search_var = tk.StringVar()
+        self.student_search_entry = tk.Entry(
+            search_frame,
+            textvariable=self.student_search_var,
+            font=('Segoe UI', 10),
+            width=25
+        )
+        self.student_search_entry.pack(side='left', padx=(0, 10))
+        self.student_search_entry.bind('<KeyRelease>', lambda e: self.filter_students())
+        
+        # Botón de búsqueda
+        search_btn = tk.Button(
+            search_frame,
+            text="🔍",
+            font=('Segoe UI', 10),
+            bg='#95a5a6',
+            fg='white',
+            relief='flat',
+            cursor='hand2',
+            command=self.filter_students
+        )
+        search_btn.pack(side='left')
+        
+        # Botón de refrescar
+        refresh_btn = tk.Button(
+            search_frame,
+            text="🔄",
+            font=('Segoe UI', 10),
+            bg='#95a5a6',
+            fg='white',
+            relief='flat',
+            cursor='hand2',
+            command=self.load_students_list
+        )
+        refresh_btn.pack(side='left', padx=(5, 0))
+        
+        # Cargar lista de estudiantes
+        self.load_students_list()
+        
+        # Área de contenido del estudiante seleccionado
+        self.create_student_content_area()
+    
+    def load_students_list(self):
+        """Carga la lista de estudiantes para el buscador"""
+        try:
+            students = student_repo.get_all()
+            if not students:
+                self.show_student_message("No hay estudiantes registrados")
+                return
+            
+            # Filtrar estudiantes activos
+            self.all_students = [s for s in students if s.get('enrollment_status') == 'activo']
+            self.filtered_students = self.all_students.copy()
+            
+            # Actualizar tabla si existe
+            if hasattr(self, 'students_tree'):
+                self.populate_students_table(self.filtered_students)
+                
+        except Exception as e:
+            print(f"Error cargando estudiantes: {e}")
+            self.show_student_message("Error al cargar estudiantes")
+    
+    def create_student_content_area(self):
+        """Crea el área de contenido para el estudiante seleccionado"""
+        # Frame principal para contenido del estudiante
+        content_frame = tk.Frame(self.content_frame, bg='#ecf0f1')
+        content_frame.pack(fill='both', expand=True, pady=(0, 10))
+        
+        # Frame izquierdo - tabla de estudiantes y calificaciones
+        left_frame = tk.Frame(content_frame, bg='#ecf0f1')
+        left_frame.pack(side='left', fill='both', expand=True, padx=(0, 5))
+        
+        # Tabla de estudiantes
+        self.create_students_table(left_frame)
+        
+        # Frame para calificaciones del estudiante (inicialmente oculto)
+        self.scores_frame = tk.Frame(left_frame, bg='white', relief='solid', borderwidth=1)
+        # No hacer pack aún, se mostrará cuando se seleccione estudiante
+        
+        # Frame derecho - formulario de agregar calificación
+        right_frame = tk.Frame(content_frame, bg='white', relief='solid', borderwidth=1, width=350)
+        right_frame.pack(side='right', fill='y', padx=(0, 20))
+        right_frame.pack_propagate(False)
+        
+        # Formulario de agregar calificación
+        self.create_score_form(right_frame)
+    
+    def create_students_table(self, parent):
+        """Crea la tabla de estudiantes"""
+        # Frame de la tabla
+        table_frame = tk.Frame(parent, bg='white', relief='solid', borderwidth=1)
+        table_frame.pack(fill='both', expand=True)
+        
+        # Scrollbars
+        vsb = ttk.Scrollbar(table_frame, orient='vertical')
+        hsb = ttk.Scrollbar(table_frame, orient='horizontal')
+        
+        # Treeview (tabla)
+        self.students_tree = ttk.Treeview(
+            table_frame,
+            columns=('Nombre', 'Apellido', 'Estado'),
+            show='headings',
+            yscrollcommand=vsb.set,
+            xscrollcommand=hsb.set
+        )
+        
+        # Configurar columnas
+        self.students_tree.heading('Nombre', text='Nombre')
+        self.students_tree.heading('Apellido', text='Apellido')
+        self.students_tree.heading('Estado', text='Estado')
+        
+        # Configurar anchos
+        self.students_tree.column('Nombre', width=150, minwidth=120)
+        self.students_tree.column('Apellido', width=150, minwidth=120)
+        self.students_tree.column('Estado', width=100, minwidth=80)
+        
+        # Empaquetar con pack
+        self.students_tree.pack(side='left', fill='both', expand=True)
+        vsb.pack(side='right', fill='y')
+        hsb.pack(side='bottom', fill='x')
+        
+        # Evento de selección
+        self.students_tree.bind('<<TreeviewSelect>>', self.on_student_select)
+    
+    def create_score_form(self, parent):
+        """Crea el formulario para agregar calificación"""
+        # Título del formulario
+        form_title = tk.Label(
+            parent,
+            text="📝 Agregar Calificación",
+            font=('Segoe UI', 12, 'bold'),
+            fg='#2c3e50',
+            bg='white'
+        )
+        form_title.pack(pady=(15, 10))
+        
+        # Frame del formulario
+        form_frame = tk.Frame(parent, bg='white')
+        form_frame.pack(fill='x', padx=20)
+        
+        # Estudiante seleccionado
+        self.selected_student_label = tk.Label(
+            form_frame,
+            text="Seleccione un estudiante",
+            font=('Segoe UI', 10, 'italic'),
+            fg='#7f8c8d',
+            bg='white'
+        )
+        self.selected_student_label.pack(anchor='w', pady=(0, 10))
+        
+        # Materia
+        tk.Label(form_frame, text="Materia *:", font=('Segoe UI', 10), bg='white').pack(anchor='w', pady=2)
+        
+        self.score_subject_var = tk.StringVar()
+        try:
+            subjects = subject_repo.get_all()
+            subject_names = [s['name'] for s in subjects] if subjects else []
+        except:
+            subject_names = []
+        
+        self.score_subject_combo = ttk.Combobox(
+            form_frame,
+            textvariable=self.score_subject_var,
+            values=subject_names,
+            font=('Segoe UI', 10),
+            width=25,
+            state='readonly'
+        )
+        self.score_subject_combo.pack(anchor='w', pady=(0, 5))
+        
+        if subject_names:
+            self.score_subject_var.set(subject_names[0])
+        
+        # Trimestre
+        tk.Label(form_frame, text="Trimestre *:", font=('Segoe UI', 10), bg='white').pack(anchor='w', pady=(10, 2))
+        
+        self.score_trimester_var = tk.StringVar()
+        trimester_combo = ttk.Combobox(
+            form_frame,
+            textvariable=self.score_trimester_var,
+            values=["1", "2", "3"],
+            font=('Segoe UI', 10),
+            width=15,
+            state='readonly'
+        )
+        trimester_combo.pack(anchor='w', pady=(0, 5))
+        
+        # Nota
+        tk.Label(form_frame, text="Nota (0-10) *:", font=('Segoe UI', 10), bg='white').pack(anchor='w', pady=(10, 2))
+        
+        self.score_value_var = tk.StringVar()
+        score_entry = tk.Entry(
+            form_frame,
+            textvariable=self.score_value_var,
+            font=('Segoe UI', 10),
+            width=20
+        )
+        score_entry.pack(anchor='w', pady=(0, 5))
+        
+        # Botón guardar
+        save_btn = tk.Button(
+            form_frame,
+            text="💾 Guardar Calificación",
+            font=('Segoe UI', 10, 'bold'),
+            bg='#27ae60',
+            fg='white',
+            relief='flat',
+            cursor='hand2',
+            command=self.save_score
+        )
+        save_btn.pack(pady=15)
+    
+    def filter_students(self):
+        """Filtra estudiantes según búsqueda"""
+        search_term = self.student_search_var.get().lower().strip()
+        
+        if not search_term:
+            self.filtered_students = self.all_students.copy()
+        else:
+            self.filtered_students = [
+                s for s in self.all_students
+                if (search_term in s['first_name'].lower() or 
+                    search_term in s['last_name'].lower())
+            ]
+        
+        # Actualizar tabla
+        if hasattr(self, 'students_tree'):
+            self.populate_students_table(self.filtered_students)
+    
+    def populate_students_table(self, students):
+        """Llena la tabla con estudiantes"""
+        # Limpiar tabla
+        for item in self.students_tree.get_children():
+            self.students_tree.delete(item)
+        
+        # Agregar estudiantes
+        for student in students:
+            self.students_tree.insert('', 'end', values=(
+                student['first_name'],
+                student['last_name'],
+                student.get('enrollment_status', 'activo')
+            ))
+    
+    def on_student_select(self, event):
+        """Maneja la selección de un estudiante"""
+        selection = self.students_tree.selection()
+        if selection:
+            item = self.students_tree.item(selection[0])
+            values = item['values']
+            
+            # Actualizar label del estudiante seleccionado
+            student_name = f"{values[0]} {values[1]}"
+            self.selected_student_label.config(text=f"Estudiante: {student_name}")
+            self.selected_student_id = None
+            
+            # Buscar ID del estudiante
+            for student in self.filtered_students:
+                if (student['first_name'] == values[0] and 
+                    student['last_name'] == values[1]):
+                    self.selected_student_id = student['id']
+                    break
+            
+            # Cargar calificaciones del estudiante
+            self.load_student_scores()
+    
+    def load_student_scores(self):
+        """Carga las calificaciones del estudiante seleccionado"""
+        if not self.selected_student_id:
+            return
+        
+        try:
+            # Obtener resumen académico
+            summary = self.academic_service.get_student_academic_summary(
+                self.selected_student_id, self.academic_year
+            )
+            
+            if 'error' in summary:
+                self.show_scores_table([])
+                return
+            
+            # Mostrar calificaciones en tabla
+            self.show_scores_table(summary.get('detailed_scores', []))
+            
+        except Exception as e:
+            print(f"Error cargando calificaciones del estudiante: {e}")
+            self.show_scores_table([])
+    
+    def show_scores_table(self, scores):
+        """Muestra la tabla de calificaciones del estudiante en el frame scores_frame"""
+        # Limpiar frame anterior
+        for widget in self.scores_frame.winfo_children():
+            widget.destroy()
+        
+        # Título
+        title_label = tk.Label(
+            self.scores_frame,
+            text="📊 Calificaciones del Estudiante",
+            font=('Segoe UI', 12, 'bold'),
+            fg='#2c3e50',
+            bg='white'
+        )
+        title_label.pack(pady=10)
+        
+        # Tabla de calificaciones
+        self.create_scores_display_table(self.scores_frame, scores)
+        
+        # Mostrar el frame si hay datos
+        if scores:
+            self.scores_frame.pack(fill='both', expand=True, pady=(10, 0))
+        else:
+            self.scores_frame.pack_forget()
+    
+    def create_scores_display_table(self, parent, scores):
+        """Crea la tabla para mostrar calificaciones"""
+        # Scrollbars
+        vsb = ttk.Scrollbar(parent, orient='vertical')
+        hsb = ttk.Scrollbar(parent, orient='horizontal')
+        
+        # Treeview (tabla)
+        scores_tree = ttk.Treeview(
+            parent,
+            columns=('Materia', 'Trimestre', 'Nota', 'Recuperacion', 'Estado'),
+            show='headings',
+            yscrollcommand=vsb.set,
+            xscrollcommand=hsb.set
+        )
+        
+        # Configurar columnas
+        scores_tree.heading('Materia', text='Materia')
+        scores_tree.heading('Trimestre', text='Trimestre')
+        scores_tree.heading('Nota', text='Nota')
+        scores_tree.heading('Recuperacion', text='Nota Recuperación')
+        scores_tree.heading('Estado', text='Estado')
+        
+        # Configurar anchos
+        scores_tree.column('Materia', width=150, minwidth=120)
+        scores_tree.column('Trimestre', width=80, minwidth=60)
+        scores_tree.column('Nota', width=80, minwidth=60)
+        scores_tree.column('Recuperacion', width=120, minwidth=100)
+        scores_tree.column('Estado', width=100, minwidth=80)
+        
+        # Empaquetar con pack
+        scores_tree.pack(side='left', fill='both', expand=True)
+        vsb.pack(side='right', fill='y')
+        hsb.pack(side='bottom', fill='x')
+        
+        # Llenar tabla con calificaciones
+        for score in scores:
+            # Obtener nombre de la materia
+            subject_name = "Desconocida"
+            try:
+                subject = subject_repo.get_by_id(score['subject_id'])
+                if subject:
+                    subject_name = subject['name']
+            except:
+                pass
+            
+            # Determinar estado
+            status = "Reprobado"
+            if score['score'] is not None:
+                if score['score'] >= 5.0:
+                    status = "Aprobado"
+                elif score.get('recovery_score') and score['recovery_score'] >= 5.0:
+                    status = "Aprobado (Rec.)"
+            
+            # Formatear valores
+            note_text = f"{score['score']:.1f}" if score['score'] is not None else "N/A"
+            recovery_text = f"{score['recovery_score']:.1f}" if score.get('recovery_score') is not None else "N/A"
+            
+            scores_tree.insert('', 'end', values=(
+                subject_name,
+                score['trimester'],
+                note_text,
+                recovery_text,
+                status
+            ))
+    
+    def save_score(self):
+        """Guarda una nueva calificación"""
+        try:
+            # Validaciones
+            if not self.selected_student_id:
+                messagebox.showwarning("Selección Requerida", 
+                                   "Por favor seleccione un estudiante")
+                return
+            
+            subject_name = self.score_subject_var.get()
+            trimester = self.score_trimester_var.get()
+            score_text = self.score_value_var.get().strip()
+            
+            if not subject_name or not trimester or not score_text:
+                messagebox.showerror("Error de Validación", 
+                                  "Todos los campos marcados con * son obligatorios")
+                return
+            
+            # Validar rango de nota
+            try:
+                score_value = float(score_text)
+                if not (0 <= score_value <= 10):
+                    messagebox.showerror("Error de Validación", 
+                                      "La nota debe estar entre 0 y 10")
+                    return
+            except ValueError:
+                messagebox.showerror("Error de Validación", 
+                                  "La nota debe ser un número válido")
+                return
+            
+            # Obtener ID de la materia
+            subject_id = None
+            subjects = subject_repo.get_all()
+            for subject in subjects:
+                if subject['name'] == subject_name:
+                    subject_id = subject['id']
+                    break
+            
+            if not subject_id:
+                messagebox.showerror("Error", "No se encontró la materia seleccionada")
+                return
+            
+            # Obtener ID del profesor (asumir primero disponible)
+            teachers = teacher_repo.get_all()
+            teacher_id = teachers[0]['id'] if teachers else 1
+            
+            # Preparar datos
+            score_data = {
+                'student_id': self.selected_student_id,
+                'subject_id': subject_id,
+                'teacher_id': teacher_id,
+                'trimester': int(trimester),
+                'score': score_value,
+                'academic_year': self.academic_year
+            }
+            
+            # Guardar calificación
+            score_id = self.academic_service.add_score(score_data)
+            
+            if score_id:
+                messagebox.showinfo("Éxito", "Calificación agregada correctamente")
+                
+                # Limpiar formulario
+                self.score_value_var.set("")
+                
+                # Recargar calificaciones del estudiante
+                self.load_student_scores()
+            else:
+                messagebox.showerror("Error", "No se pudo guardar la calificación")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al guardar: {e}")
+    
+    def show_student_message(self, message: str):
+        """Muestra un mensaje en el área de contenido"""
+        # Limpiar contenido anterior
+        for widget in self.content_frame.winfo_children():
+            if widget.winfo_class() == 'Frame':
+                for child in widget.winfo_children():
+                    child.destroy()
+            widget.destroy()
+        
+        # Mostrar mensaje
+        message_label = tk.Label(
             self.content_frame,
-            text="👨‍🎓 Calificaciones por Estudiante - En implementación...",
-            font=('Segoe UI', 16),
+            text=message,
+            font=('Segoe UI', 14),
             fg='#7f8c8d',
             bg='#ecf0f1'
         )
-        placeholder.pack(pady=50)
+        message_label.pack(pady=50)
     
     def show_alertas_section(self):
         """Muestra la sección de alertas académicas"""
