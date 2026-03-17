@@ -15,7 +15,7 @@ from utils.helpers import hash_password
 class LoginWindow:
     """Ventana de login profesional"""
     
-    def __init__(self, parent: tk.Tk, on_success: Callable[[Dict[str, Any]], None]):
+    def __init__(self, parent: tk.Tk, on_success: Callable[[Dict[str, Any], str], None]):
         self.parent = parent
         self.on_success = on_success
         
@@ -289,7 +289,7 @@ class LoginWindow:
             
             # Verificar contraseña (en MVP, comparación simple)
             # En producción, usar hash_password
-            if user['password_hash'] != self.hash_password(password):
+            if user['password_hash'] != hash_password(password):
                 messagebox.showerror("Error de Autenticación", 
                                   "Usuario o contraseña incorrectos")
                 return
@@ -308,7 +308,8 @@ class LoginWindow:
                 'is_active': user['is_active']
             }
             
-            self.on_success(user_data)
+            # Llamar callback con user_data Y contraseña
+            self.on_success(user_data, password)
             
         except Exception:
             messagebox.showerror("Error del Sistema", 
@@ -322,7 +323,7 @@ class LoginWindow:
                 # Crear usuario admin por defecto
                 admin_data = {
                     'username': 'admin',
-                    'password_hash': self.hash_password('admin123'),
+                    'password_hash': hash_password('admin123'),
                     'role_id': 1,  # Rol de Directiva
                     'is_active': True
                 }

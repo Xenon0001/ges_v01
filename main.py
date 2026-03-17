@@ -35,6 +35,7 @@ class GESApplication:
         # Configuración
         self.config = self.load_config()
         self.current_user = None
+        self.api_client = None  # Se inicializará en modo cliente
         
         # Inicializar base de datos
         self.initialize_database()
@@ -108,12 +109,27 @@ class GESApplication:
         
         self.current_window = LoginWindow(self.root, self.on_login_success)
     
-    def on_login_success(self, user_data: Dict[str, Any]) -> None:
-        """Callback cuando el login es exitoso"""
-        self.current_user = user_data
-        # Añadir rol accesible
-        self.user_role = self._get_role_name(user_data.get('role_id', 0))
-        self.show_dashboard()
+    def on_login_success(self, user_data: Dict[str, Any], password: str) -> None:
+        try:
+            self.current_user = user_data
+            self.user_role = self._get_role_name(user_data.get('role_id', 0))
+            
+            if self.config.get('mode') == 'client':
+                from services.api_client import GESApiClient
+                self.api_client = GESApiClient(self.config)
+                
+                try:
+                    api_user_data = self.api_client.login(user_data['username'], password)
+                    self.current_user = api_user_data
+                except Exception as e:
+                    messagebox.showerror("Error de Conexión", f"No se pudo conectar al servidor:\n{str(e)}")
+                    return
+            
+            self.show_dashboard()
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
     
     def _get_role_name(self, role_id: int) -> str:
         """Obtiene nombre del rol desde ID"""
@@ -136,12 +152,23 @@ class GESApplication:
             except:
                 pass
         
-        self.current_window = DashboardWindow(
-            self.root, 
-            self.current_user, 
-            self.config,
-            self.on_logout
-        )
+        # En modo cliente, pasar API client al DashboardWindow
+        if self.config.get('mode') == 'client':
+            self.current_window = DashboardWindow(
+                self.root, 
+                self.current_user, 
+                self.config,
+                self.on_logout,
+                self.api_client  # ← Nuevo parámetro
+            )
+        else:
+            # Modo normal (comportamiento existente)
+            self.current_window = DashboardWindow(
+                self.root, 
+                self.current_user, 
+                self.config,
+                self.on_logout
+            )
     
     def on_logout(self) -> None:
         """Callback cuando se hace logout"""

@@ -17,7 +17,8 @@ class DashboardWindow:
     """Ventana principal del dashboard"""
     
     def __init__(self, parent: tk.Tk, user_data: Dict[str, Any], 
-                 config: Dict[str, Any], on_logout: Callable):
+                 config: Dict[str, Any], on_logout: Callable, 
+                 api_client: Optional[Any] = None):  # ← Nuevo parámetro
         self.parent = parent
         self.user_data = user_data
         self.config = config
@@ -25,9 +26,16 @@ class DashboardWindow:
         self.user_role = self._get_role_name(user_data.get('role_id', 0))
         
         # Servicios
-        self.student_service = StudentService()
-        self.academic_service = AcademicService()
-        self.finance_service = FinanceService()
+        # Si tenemos API client, usarlo en lugar de services locales
+        if api_client:
+            self.student_service = api_client
+            self.academic_service = api_client
+            self.finance_service = api_client
+        else:
+            # Modo normal - usar services locales
+            self.student_service = StudentService()
+            self.academic_service = AcademicService()
+            self.finance_service = FinanceService()
         
         # Configurar ventana
         self.setup_window()
