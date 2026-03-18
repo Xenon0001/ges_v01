@@ -586,4 +586,9 @@ class DashboardWindow:
         if not self._check_permission("Directiva"):
             messagebox.showwarning("Acceso Denegado", "No tienes permisos para acceder a la configuración.")
             return
-        messagebox.showinfo("En Desarrollo", "Módulo de Configuración en desarrollo")
+        
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        
+        from ui.settings_view import SettingsView
+        SettingsView(self.scrollable_frame, self.config, self.user_data)

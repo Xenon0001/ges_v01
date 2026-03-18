@@ -1,7 +1,12 @@
 {
-    "mode": "normal",
-    "server_ip": null,
-    "port": 8000,
-    "school_name": "Centro Educativo GES",
-    "academic_year": 2024
+  "mode": "normal",
+  "server_ip": null,
+  "port": 8000,
+  "school_name": "Centro Eco Ges",
+  "academic_year": 2026,
+  "centro": {
+    "nombre": "Centro Eco Ges",
+    "anio_academico": 2026,
+    "ultima_actualizacion": "2026-03-18T13:03:42.269036"
+  }
 }

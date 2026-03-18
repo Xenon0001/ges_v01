@@ -177,6 +177,16 @@ class DatabaseModels:
             INSERT OR IGNORE INTO {TABLES['roles']} (name, permissions) VALUES (?, ?)
         """, roles)
         
+        # Usuario administrador por defecto
+        import hashlib
+        admin_password_hash = hashlib.sha256("admin123".encode()).hexdigest()
+        
+        db.execute_update(f"""
+            INSERT OR IGNORE INTO {TABLES['users']} 
+            (username, password_hash, role_id, is_active) 
+            VALUES (?, ?, ?, ?)
+        """, ("admin", admin_password_hash, 1, 1))
+        
         # Niveles educativos
         levels = [
             ('Primaria',),
