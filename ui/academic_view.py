@@ -7,23 +7,27 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+import tkinter.filedialog as filedialog
 
 from services.academic_service import AcademicService
 from database.repository import subject_repo, classroom_repo, student_repo, teacher_repo
+from utils.excel_importer import excel_importer
 
 
 class AcademicView:
     """Vista de gestión académica"""
     
     def __init__(self, parent: tk.Frame, config: Dict[str, Any], 
-                 academic_service=None):
+                 academic_service=None, user_data=None):
         self.parent = parent
         self.config = config
         self.academic_service = academic_service if academic_service else AcademicService()
+        self.current_user_id = user_data.get('id', 1) if user_data else 1
         
         # Estado
         self.current_section = "materias"
         self.academic_year = self.config.get('academic_year', 2024)
+        self.selected_file_path = None
         
         # Crear UI
         self.create_widgets()
@@ -108,7 +112,8 @@ class AcademicView:
             ("📊 Materias", "materias", '#3498db'),
             ("🏫 Aulas", "aulas", '#27ae60'),
             ("👨‍🎓 Estudiantes", "estudiantes", '#e67e22'),
-            ("⚠️ Alertas", "alertas", '#e74c3c')
+            ("⚠️ Alertas", "alertas", '#e74c3c'),
+            ("📥 Importar", "importar", '#9b59b6')
         ]
         
         for text, section_id, color in sections:
@@ -170,6 +175,8 @@ class AcademicView:
             self.show_estudiantes_section()
         elif section_id == "alertas":
             self.show_alertas_section()
+        elif section_id == "importar":
+            self.show_importar_section()
     
     def update_nav_buttons(self, active_section: str):
         """Actualiza los colores de los botones de navegación"""
@@ -177,7 +184,8 @@ class AcademicView:
             "materias": '#3498db',
             "aulas": '#27ae60',
             "estudiantes": '#e67e22',
-            "alertas": '#e74c3c'
+            "alertas": '#e74c3c',
+            "importar": '#9b59b6'
         }
         
         for section_id, btn in self.nav_buttons.items():
@@ -1501,4 +1509,316 @@ class AcademicView:
         if hasattr(self, 'alertas_tree'):
             self.alertas_tree.insert('', 'end', values=(
                 message, '', '', ''
+            ))
+
+    def show_importar_section(self):
+        """Muestra la sección de importación Excel"""
+        # Header de la sección
+        header_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
+        header_frame.pack(fill='x', pady=(0, 10))
+        
+        # Título
+        title_frame = tk.Frame(header_frame, bg='white')
+        title_frame.pack(fill='x', padx=20, pady=15)
+        
+        title_label = tk.Label(
+            title_frame,
+            text="📥 Importación de Calificaciones",
+            font=('Segoe UI', 16, 'bold'),
+            fg='#2c3e50',
+            bg='white'
+        )
+        title_label.pack(side='left')
+        
+        # Frame principal de importación
+        import_frame = tk.Frame(self.content_frame, bg='white', relief='solid', borderwidth=1)
+        import_frame.pack(fill='both', expand=True, pady=(0, 10))
+        
+        # Sección de configuración
+        config_section = tk.Frame(import_frame, bg='white')
+        config_section.pack(fill='x', padx=20, pady=20)
+        
+        # Fila 1: Botones principales
+        buttons_row1 = tk.Frame(config_section, bg='white')
+        buttons_row1.pack(fill='x', pady=(0, 15))
+        
+        # Botón Descargar Plantilla
+        template_btn = tk.Button(
+            buttons_row1,
+            text="📄 Descargar Plantilla",
+            font=('Segoe UI', 11, 'bold'),
+            bg='#27ae60',
+            fg='white',
+            relief='flat',
+            cursor='hand2',
+            command=self.download_template,
+            padx=20,
+            pady=10
+        )
+        template_btn.pack(side='left', padx=(0, 10))
+        
+        # Botón Seleccionar Archivo
+        select_btn = tk.Button(
+            buttons_row1,
+            text="📁 Seleccionar Archivo Excel",
+            font=('Segoe UI', 11, 'bold'),
+            bg='#3498db',
+            fg='white',
+            relief='flat',
+            cursor='hand2',
+            command=self.select_excel_file,
+            padx=20,
+            pady=10
+        )
+        select_btn.pack(side='left', padx=(0, 10))
+        
+        # Fila 2: Año académico y archivo seleccionado
+        config_row2 = tk.Frame(config_section, bg='white')
+        config_row2.pack(fill='x', pady=(0, 15))
+        
+        # Selector de año académico
+        tk.Label(config_row2, text="Año Académico:", font=('Segoe UI', 11), bg='white').pack(side='left', padx=(0, 5))
+        
+        self.academic_year_var = tk.StringVar(value=str(self.academic_year))
+        year_combo = ttk.Combobox(
+            config_row2,
+            textvariable=self.academic_year_var,
+            values=["2023", "2024", "2025", "2026"],
+            font=('Segoe UI', 11),
+            width=10,
+            state='readonly'
+        )
+        year_combo.pack(side='left', padx=(0, 20))
+        
+        # Archivo seleccionado
+        tk.Label(config_row2, text="Archivo:", font=('Segoe UI', 11), bg='white').pack(side='left', padx=(0, 5))
+        
+        self.file_label = tk.Label(
+            config_row2,
+            text="Ningún archivo seleccionado",
+            font=('Segoe UI', 11, 'italic'),
+            fg='#7f8c8d',
+            bg='white'
+        )
+        self.file_label.pack(side='left')
+        
+        # Botón Importar
+        import_btn = tk.Button(
+            config_section,
+            text="🚀 Importar Calificaciones",
+            font=('Segoe UI', 12, 'bold'),
+            bg='#e67e22',
+            fg='white',
+            relief='flat',
+            cursor='hand2',
+            command=self.import_grades,
+            padx=25,
+            pady=12
+        )
+        import_btn.pack(pady=10)
+        
+        # Área de resultados
+        self.create_import_results_area(import_frame)
+
+    def create_import_results_area(self, parent):
+        """Crea el área de resultados de importación"""
+        # Frame de resultados
+        results_frame = tk.Frame(parent, bg='white')
+        results_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        
+        # Título de resultados
+        results_title = tk.Label(
+            results_frame,
+            text="📋 Resultados de Importación",
+            font=('Segoe UI', 14, 'bold'),
+            fg='#2c3e50',
+            bg='white'
+        )
+        results_title.pack(anchor='w', pady=(0, 10))
+        
+        # Frame para resumen
+        self.summary_frame = tk.Frame(results_frame, bg='#ecf0f1', relief='solid', borderwidth=1)
+        self.summary_frame.pack(fill='x', pady=(0, 10))
+        
+        # Resumen inicial
+        self.summary_label = tk.Label(
+            self.summary_frame,
+            text="Esperando importación...",
+            font=('Segoe UI', 11),
+            fg='#7f8c8d',
+            bg='#ecf0f1'
+        )
+        self.summary_label.pack(pady=10, padx=15, anchor='w')
+        
+        # Tabla de errores
+        errors_label = tk.Label(
+            results_frame,
+            text="❌ Errores Detectados",
+            font=('Segoe UI', 12, 'bold'),
+            fg='#e74c3c',
+            bg='white'
+        )
+        errors_label.pack(anchor='w', pady=(10, 5))
+        
+        # Frame scrollable para tabla de errores
+        table_container = tk.Frame(results_frame, bg='white')
+        table_container.pack(fill='both', expand=True)
+        
+        # Scrollbar
+        error_scrollbar = ttk.Scrollbar(table_container, orient='vertical')
+        
+        # Tabla de errores
+        self.import_errors_tree = ttk.Treeview(
+            table_container,
+            columns=('Fila', 'Estudiante', 'Materia', 'Error'),
+            show='headings',
+            yscrollcommand=error_scrollbar.set,
+            height=10
+        )
+        
+        # Configurar columnas
+        self.import_errors_tree.heading('Fila', text='Fila')
+        self.import_errors_tree.heading('Estudiante', text='Estudiante')
+        self.import_errors_tree.heading('Materia', text='Materia')
+        self.import_errors_tree.heading('Error', text='Mensaje de Error')
+        
+        # Configurar anchos
+        self.import_errors_tree.column('Fila', width=60, minwidth=50)
+        self.import_errors_tree.column('Estudiante', width=200, minwidth=150)
+        self.import_errors_tree.column('Materia', width=150, minwidth=120)
+        self.import_errors_tree.column('Error', width=400, minwidth=300)
+        
+        # Empaquetar
+        self.import_errors_tree.pack(side='left', fill='both', expand=True)
+        error_scrollbar.pack(side='right', fill='y')
+
+    def download_template(self):
+        """Descarga la plantilla Excel"""
+        try:
+            # Abrir diálogo para guardar archivo
+            file_path = filedialog.asksaveasfilename(
+                title="Guardar Plantilla Excel",
+                defaultextension=".xlsx",
+                filetypes=[("Archivos Excel", "*.xlsx"), ("Todos los archivos", "*.*")],
+                initialfile="plantilla_notas.xlsx"
+            )
+            
+            if file_path:
+                # Generar plantilla
+                success = excel_importer.generate_template(file_path)
+                
+                if success:
+                    messagebox.showinfo(
+                        "✅ Plantilla Generada",
+                        f"Plantilla guardada exitosamente en:\n{file_path}\n\n"
+                        "Complete los datos y use la opción de importación."
+                    )
+                else:
+                    messagebox.showerror(
+                        "❌ Error",
+                        "No se pudo generar la plantilla. Por favor, intente nuevamente."
+                    )
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"Error al generar plantilla: {str(e)}")
+
+    def select_excel_file(self):
+        """Selecciona un archivo Excel para importar"""
+        try:
+            file_path = filedialog.askopenfilename(
+                title="Seleccionar Archivo Excel",
+                filetypes=[("Archivos Excel", "*.xlsx"), ("Todos los archivos", "*.*")]
+            )
+            
+            if file_path:
+                self.selected_file_path = file_path
+                # Mostrar nombre del archivo
+                file_name = file_path.split('/')[-1] if '/' in file_path else file_path.split('\\')[-1]
+                self.file_label.config(
+                    text=f"📄 {file_name}",
+                    fg='#27ae60'
+                )
+                
+                # Validar estructura del archivo
+                is_valid, error_msg = excel_importer.validate_excel_structure(file_path)
+                if not is_valid:
+                    messagebox.showwarning(
+                        "⚠️ Estructura Inválida",
+                        f"El archivo seleccionado no tiene la estructura correcta:\n\n{error_msg}\n\n"
+                        "Por favor, descargue la plantilla y úsela como referencia."
+                    )
+                    self.selected_file_path = None
+                    self.file_label.config(
+                        text="Ningún archivo seleccionado",
+                        fg='#7f8c8d'
+                    )
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"Error al seleccionar archivo: {str(e)}")
+
+    def import_grades(self):
+        """Ejecuta la importación de calificaciones"""
+        if not self.selected_file_path:
+            messagebox.showwarning(
+                "⚠️ Archivo Requerido",
+                "Por favor, seleccione un archivo Excel antes de importar."
+            )
+            return
+        
+        try:
+            # Obtener año académico
+            academic_year = int(self.academic_year_var.get())
+            
+            # Ejecutar importación
+            result = excel_importer.import_grades_from_excel(
+                self.selected_file_path,
+                academic_year,
+                self.current_user_id
+            )
+            
+            # Mostrar resultados
+            self.display_import_results(result)
+            
+            # Mensaje resumen
+            if result.error_count == 0:
+                messagebox.showinfo(
+                    "✅ Importación Exitosa",
+                    result.get_summary()
+                )
+            else:
+                messagebox.showwarning(
+                    "⚠️ Importación con Errores",
+                    result.get_summary() + "\n\nRevise la tabla de errores para más detalles."
+                )
+                
+        except Exception as e:
+            messagebox.showerror(
+                "❌ Error de Importación",
+                f"Error durante la importación: {str(e)}"
+            )
+
+    def display_import_results(self, result):
+        """Muestra los resultados de la importación"""
+        # Actualizar resumen
+        summary_color = '#27ae60' if result.error_count == 0 else '#e67e22'
+        self.summary_label.config(
+            text=result.get_summary(),
+            fg=summary_color
+        )
+        
+        # Limpiar tabla de errores
+        for item in self.import_errors_tree.get_children():
+            self.import_errors_tree.delete(item)
+        
+        # Agregar errores a la tabla
+        for error in result.errors:
+            self.import_errors_tree.insert('', 'end', values=(
+                error.row_number,
+                error.student_name,
+                error.subject,
+                error.message
+            ))
+        
+        # Si no hay errores, mostrar mensaje
+        if result.error_count == 0:
+            self.import_errors_tree.insert('', 'end', values=(
+                "-", "-", "-", "No se detectaron errores ✅"
             ))

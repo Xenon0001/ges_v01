@@ -555,7 +555,7 @@ class DashboardWindow:
         
         # Importar y cargar vista
         from ui.academic_view import AcademicView
-        AcademicView(self.scrollable_frame, self.config, self.academic_service)
+        AcademicView(self.scrollable_frame, self.config, self.academic_service, self.user_data)
     
     def show_finances(self):
         """Muestra la vista financiera"""
