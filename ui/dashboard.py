@@ -356,7 +356,7 @@ class DashboardWindow:
         self.create_metric_card(
             cards_frame,
             "💰 Pagos del Mes",
-            "€0",
+            "0 FCFA",
             "#27ae60",
             1
         )
@@ -365,7 +365,7 @@ class DashboardWindow:
         self.create_metric_card(
             cards_frame,
             "⚠️ Morosidad",
-            "€0",
+            "0 FCFA",
             "#e74c3c",
             2
         )
@@ -486,9 +486,9 @@ class DashboardWindow:
             total_students = academic_data['summary'].get('total_active_students', 0)
             self.metric_cards["👥 Total Estudiantes"].config(text=str(total_students))
         if 'summary' in financial_data and hasattr(financial_data['summary'], 'total_paid') and "💰 Pagos del Mes" in self.metric_cards:
-            self.metric_cards["💰 Pagos del Mes"].config(text=f"€{financial_data['summary'].total_paid:.2f}")
+            self.metric_cards["💰 Pagos del Mes"].config(text=f"{financial_data['summary'].total_paid:.2f} FCFA")
         if 'summary' in financial_data and hasattr(financial_data['summary'], 'total_outstanding') and "⚠️ Morosidad" in self.metric_cards:
-            self.metric_cards["⚠️ Morosidad"].config(text=f"€{financial_data['summary'].total_outstanding:.2f}")
+            self.metric_cards["⚠️ Morosidad"].config(text=f"{financial_data['summary'].total_outstanding:.2f} FCFA")
         if "🔔 Alertas Activas" in self.metric_cards:
             total_alerts = len(financial_data.get('critical_alerts', [])) + len(academic_data.get('critical_alerts', []))
             self.metric_cards["🔔 Alertas Activas"].config(text=str(total_alerts))

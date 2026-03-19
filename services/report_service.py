@@ -234,12 +234,12 @@ class ReportService:
         story.append(Paragraph("RESUMEN EJECUTIVO", self.styles['CustomHeading']))
         summary_data = [
             ['Total Estudiantes:', str(summary.total_students)],
-            ['Total Deuda:', f"${summary.total_due:,.2f}"],
-            ['Total Pagado:', f"${summary.total_paid:,.2f}"],
-            ['Total Pendiente:', f"${summary.total_outstanding:,.2f}"],
+            ['Total Deuda:', f"{summary.total_due:,.2f} FCFA"],
+            ['Total Pagado:', f"{summary.total_paid:,.2f} FCFA"],
+            ['Total Pendiente:', f"{summary.total_outstanding:,.2f} FCFA"],
             ['Tasa de Cobro:', f"{summary.collection_rate:.1f}%"],
             ['Pagos Vencidos:', str(summary.overdue_payments)],
-            ['Monto Vencido:', f"${summary.overdue_amount:,.2f}"]
+            ['Monto Vencido:', f"{summary.overdue_amount:,.2f} FCFA"]
         ]
         
         summary_table = Table(summary_data, colWidths=[2.5*inch, 2*inch])
@@ -272,9 +272,9 @@ class ReportService:
                 payments_data.append([
                     student_name,
                     tutor_name,
-                    f"${amount_due:,.2f}",
-                    f"${amount_paid:,.2f}",
-                    f"${outstanding:,.2f}",
+                    f"{amount_due:,.2f} FCFA",
+                    f"{amount_paid:,.2f} FCFA",
+                    f"{outstanding:,.2f} FCFA",
                     status,
                     due_date
                 ])

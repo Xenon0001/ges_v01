@@ -294,8 +294,8 @@ class FinanceView:
         # Tarjeta: Total Cobrado
         self.total_collected_card = self.create_metric_card(
             cards_frame,
-            "💵 Total Cobrado",
-            "$0.00",
+            "� Total Cobrado",
+            "0 FCFA",
             "#27ae60",
             1
         )
@@ -304,7 +304,7 @@ class FinanceView:
         self.total_outstanding_card = self.create_metric_card(
             cards_frame,
             "⏳ Total Pendiente",
-            "$0.00",
+            "0 FCFA",
             "#e74c3c",
             2
         )
@@ -362,8 +362,8 @@ class FinanceView:
             
             # Actualizar tarjetas de métricas
             self.total_students_card.config(text=str(summary.total_students))
-            self.total_collected_card.config(text=f"${summary.total_paid:.2f}")
-            self.total_outstanding_card.config(text=f"${summary.total_outstanding:.2f}")
+            self.total_collected_card.config(text=f"{summary.total_paid:.2f} FCFA")
+            self.total_outstanding_card.config(text=f"{summary.total_outstanding:.2f} FCFA")
             self.collection_rate_card.config(text=f"{summary.collection_rate:.1f}%")
             
             # Actualizar tabla
@@ -383,25 +383,25 @@ class FinanceView:
         table_data = [
             {
                 'categoria': '💰 Total Debitado',
-                'monto': f"${summary.total_due:.2f}",
+                'monto': f"{summary.total_due:.2f} FCFA",
                 'cantidad': str(summary.total_students),
                 'porcentaje': '100.0%'
             },
             {
                 'categoria': '✅ Total Cobrado',
-                'monto': f"${summary.total_paid:.2f}",
+                'monto': f"{summary.total_paid:.2f} FCFA",
                 'cantidad': f"{summary.total_students - summary.overdue_payments}",
                 'porcentaje': f"{summary.collection_rate:.1f}%"
             },
             {
                 'categoria': '⏳ Total Pendiente',
-                'monto': f"${summary.total_outstanding:.2f}",
+                'monto': f"{summary.total_outstanding:.2f} FCFA",
                 'cantidad': str(summary.overdue_payments),
                 'porcentaje': f"{100 - summary.collection_rate:.1f}%"
             },
             {
                 'categoria': '⚠️ Pagos Vencidos',
-                'monto': f"${summary.overdue_amount:.2f}",
+                'monto': f"{summary.overdue_amount:.2f} FCFA",
                 'cantidad': str(summary.overdue_payments),
                 'porcentaje': f"{(summary.overdue_amount / summary.total_due * 100) if summary.total_due > 0 else 0:.1f}%"
             }
@@ -777,7 +777,7 @@ class FinanceView:
                     student['first_name'],
                     student['last_name'],
                     status_text,
-                    f"${metrics.outstanding:.2f}"
+                    f"{metrics.outstanding:.2f} FCFA"
                 ))
                 
             except Exception as e:
@@ -878,8 +878,8 @@ class FinanceView:
                 status_text = f"⏳ {status.title()}"
             
             self.payments_tree.insert('', 'end', values=(
-                f"${payment['amount_due']:.2f}",
-                f"${payment['amount_paid']:.2f}",
+                f"{payment['amount_due']:.2f} FCFA",
+                f"{payment['amount_paid']:.2f} FCFA",
                 status_text,
                 payment.get('due_date', 'N/A')
             ))
@@ -898,7 +898,7 @@ class FinanceView:
         payment_options = []
         for payment in pending_payments:
             remaining = payment['amount_due'] - payment['amount_paid']
-            option = f"Pago {payment['id']} - ${remaining:.2f} pendientes"
+            option = f"Pago {payment['id']} - {remaining:.2f} FCFA pendientes"
             payment_options.append(option)
         
         self.payment_combo['values'] = payment_options
@@ -946,14 +946,14 @@ class FinanceView:
             
             remaining = selected_payment['amount_due'] - selected_payment['amount_paid']
             if amount > remaining:
-                messagebox.showerror("Error", f"El monto excede el saldo pendiente de ${remaining:.2f}")
+                messagebox.showerror("Error", f"El monto excede el saldo pendiente de {remaining:.2f} FCFA")
                 return
             
             # Registrar pago
             success = self.finance_service.record_payment(payment_id, amount)
             
             if success:
-                messagebox.showinfo("Éxito", f"Pago de ${amount:.2f} registrado correctamente")
+                messagebox.showinfo("Éxito", f"Pago de {amount:.2f} FCFA registrado correctamente")
                 
                 # Limpiar formulario
                 self.payment_amount_var.set("")
@@ -1062,7 +1062,7 @@ class FinanceView:
         self.overdue_amount_card = self.create_metric_card(
             cards_frame,
             "💸 Monto Vencido",
-            "$0.00",
+            "0 FCFA",
             "#e74c3c",
             1
         )
@@ -1205,7 +1205,7 @@ class FinanceView:
     def update_morosidad_metrics(self, metrics):
         """Actualiza las tarjetas de métricas de morosidad"""
         self.total_overdue_card.config(text=str(metrics['total_overdue']))
-        self.overdue_amount_card.config(text=f"${metrics['overdue_amount']:.2f}")
+        self.overdue_amount_card.config(text=f"{metrics['overdue_amount']:.2f} FCFA")
         self.critical_overdue_card.config(text=str(metrics['critical_count']))
         self.avg_overdue_days_card.config(text=f"{metrics['avg_days_overdue']:.0f}")
     
@@ -1248,7 +1248,7 @@ class FinanceView:
                 self.morosidad_tree.insert('', 'end', values=(
                     f"{student['first_name']} {student['last_name']}",
                     student.get('tutor_name', 'No especificado'),
-                    f"${outstanding:.2f}",
+                    f"{outstanding:.2f} FCFA",
                     days_text,
                     payment.get('due_date', 'N/A')
                 ))
@@ -1473,9 +1473,9 @@ class FinanceView:
             self.tutor_tree.insert('', 'end', values=(
                 tutor_name,
                 group.students_count,
-                f"${group.total_due:.2f}",
-                f"${group.total_paid:.2f}",
-                f"${group.outstanding:.2f}",
+                f"{group.total_due:.2f} FCFA",
+                f"{group.total_paid:.2f} FCFA",
+                f"{group.outstanding:.2f} FCFA",
                 group.overdue_count,
                 rate_text
             ))
