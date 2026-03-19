@@ -568,6 +568,66 @@ class StudentsView:
                     # Modo creación
                     student_id = self.student_service.create_student(student_data)
                     if student_id:
+                        # Integración con Calendario de Pagos
+                        try:
+                            from services.finance_service import FinanceService
+                            from ui.calendar_view import CreateCalendarDialog
+                            from tkinter import messagebox
+                            from datetime import datetime
+                            
+                            fs = FinanceService()
+                            tutor_name = student_data.get('tutor_name', '').strip()
+                            academic_year = datetime.now().year
+                            
+                            if tutor_name:
+                                # Verificar si el tutor ya tiene calendario activo
+                                calendar = fs.get_calendar_by_tutor(tutor_name, academic_year)
+                                
+                                if calendar:
+                                    # Asignar automáticamente al calendario existente
+                                    try:
+                                        fs.assign_student_to_calendar(student_id, calendar['id'])
+                                        messagebox.showinfo(
+                                            "Calendario de Pagos", 
+                                            f"Estudiante asignado automáticamente al calendario de {tutor_name}"
+                                        )
+                                    except Exception as e:
+                                        messagebox.showwarning(
+                                            "Calendario de Pagos", 
+                                            f"No se pudo asignar al calendario existente: {str(e)}"
+                                        )
+                                else:
+                                    # Preguntar si desea crear nuevo calendario
+                                    response = messagebox.askyesno(
+                                        "Calendario de Pagos",
+                                        f"¿Desea crear un calendario de pagos para {tutor_name}?"
+                                    )
+                                    
+                                    if response:
+                                        # Abrir diálogo de creación con datos pre-rellenados
+                                        try:
+                                            dialog = CreateCalendarDialog(
+                                                parent, fs,
+                                                initial_tutor_name=tutor_name,
+                                                initial_student_id=student_id
+                                            )
+                                            
+                                            if dialog.result:
+                                                messagebox.showinfo(
+                                                    "Calendario de Pagos", 
+                                                    f"Calendario creado exitosamente para {tutor_name}"
+                                                )
+                                        except Exception as e:
+                                            messagebox.showerror(
+                                                "Calendario de Pagos", 
+                                                f"No se pudo crear el calendario: {str(e)}"
+                                            )
+                                        
+                        except ImportError as e:
+                            print(f"No se pudieron importar módulos de calendario: {e}")
+                        except Exception as e:
+                            print(f"Error en integración de calendario: {e}")
+                        
                         messagebox.showinfo("Éxito", "Estudiante creado correctamente")
                         parent.destroy()
                         self.load_students()

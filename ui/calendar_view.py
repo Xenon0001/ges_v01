@@ -471,9 +471,12 @@ class CalendarManagerView:
 class CreateCalendarDialog:
     """Diálogo para crear nuevo calendario"""
     
-    def __init__(self, parent: tk.Widget, finance_service: FinanceService):
+    def __init__(self, parent: tk.Widget, finance_service: FinanceService, 
+             initial_tutor_name: str = "", initial_student_id: int = None):
         self.parent = parent
         self.finance_service = finance_service
+        self.initial_tutor_name = initial_tutor_name
+        self.initial_student_id = initial_student_id
         self.result = None
         
         self.dialog = tk.Toplevel(parent)
@@ -499,7 +502,7 @@ class CreateCalendarDialog:
         tutor_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Label(tutor_frame, text="Nombre del Tutor:").grid(row=0, column=0, sticky=tk.W, padx=10, pady=5)
-        self.tutor_name_var = tk.StringVar()
+        self.tutor_name_var = tk.StringVar(value=self.initial_tutor_name)
         ttk.Entry(tutor_frame, textvariable=self.tutor_name_var, width=30).grid(row=0, column=1, padx=10, pady=5)
         
         ttk.Label(tutor_frame, text="Teléfono:").grid(row=1, column=0, sticky=tk.W, padx=10, pady=5)
@@ -533,6 +536,10 @@ class CreateCalendarDialog:
         self.start_date_var = tk.StringVar(value=date.today().replace(day=1).strftime('%Y-%m-%d'))
         ttk.Entry(installments_frame, textvariable=self.start_date_var, width=30).grid(row=1, column=1, padx=10, pady=5)
         
+        ttk.Label(installments_frame, text="Pago inicial (FCFA):").grid(row=2, column=0, sticky=tk.W, padx=10, pady=5)
+        self.initial_payment_var = tk.DoubleVar(value=0)
+        ttk.Entry(installments_frame, textvariable=self.initial_payment_var, width=30).grid(row=2, column=1, padx=10, pady=5)
+        
         # Resumen
         self.summary_frame = ttk.LabelFrame(main_frame, text="Resumen")
         self.summary_frame.pack(fill=tk.X, pady=(0, 10))
@@ -546,6 +553,12 @@ class CreateCalendarDialog:
         self.total_final_label = ttk.Label(self.summary_frame, text="Total Final: 0 FCFA", font=('Arial', 10, 'bold'))
         self.total_final_label.pack(anchor=tk.W, padx=10, pady=2)
         
+        self.initial_payment_label = ttk.Label(self.summary_frame, text="Pago Inicial: 0 FCFA")
+        self.initial_payment_label.pack(anchor=tk.W, padx=10, pady=2)
+        
+        self.installment_amount_label = ttk.Label(self.summary_frame, text="Monto por Cuota: 0 FCFA", font=('Arial', 10, 'bold'))
+        self.installment_amount_label.pack(anchor=tk.W, padx=10, pady=2)
+        
         # Botones
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill=tk.X)
@@ -556,7 +569,10 @@ class CreateCalendarDialog:
         # Binds para actualización automática
         self.tutor_name_var.trace('w', self.update_summary)
         self.discount_var.trace('w', self.update_summary)
+        self.initial_payment_var.trace('w', self.update_summary)
+        self.installments_count_var.trace('w', self.update_summary)
         
+        # Actualizar resumen con pre-selecciones iniciales (después de crear los labels)
         self.update_summary()
     
     def setup_students_list(self, parent: ttk.Frame):
@@ -617,6 +633,11 @@ class CreateCalendarDialog:
                 
         except Exception as e:
             ttk.Label(list_frame, text=f"Error cargando estudiantes: {str(e)}").pack()
+        
+        # Pre-seleccionar estudiante inicial si se proporcionó
+        if self.initial_student_id and self.initial_student_id in self.student_vars:
+            self.student_vars[self.initial_student_id]['var'].set(True)
+            # NO llamar update_summary() aquí - se llamará después en setup_ui()
     
     def update_summary(self, *args):
         """Actualiza resumen de montos"""
@@ -632,9 +653,24 @@ class CreateCalendarDialog:
         discount = self.discount_var.get()
         total_final = max(0, total_base - discount)
         
+        # Nueva lógica de cálculo
+        initial_payment = self.initial_payment_var.get()
+        installments_count = self.installments_count_var.get()
+        
+        # Validar que el pago inicial no exceda el total final
+        if initial_payment > total_final:
+            initial_payment = total_final
+            self.initial_payment_var.set(initial_payment)
+        
+        balance_for_installments = total_final - initial_payment
+        installment_amount = balance_for_installments / installments_count if installments_count > 0 else 0
+        
+        # Actualizar labels
         self.total_base_label.config(text=f"Total Base: {total_base:,.0f} FCFA")
         self.discount_label.config(text=f"Descuento: {discount:,.0f} FCFA")
         self.total_final_label.config(text=f"Total Final: {total_final:,.0f} FCFA")
+        self.initial_payment_label.config(text=f"Pago Inicial: {initial_payment:,.0f} FCFA")
+        self.installment_amount_label.config(text=f"Monto por Cuota: {installment_amount:,.0f} FCFA")
     
     def create_calendar(self):
         """Crea el calendario"""
@@ -665,20 +701,39 @@ class CreateCalendarDialog:
                 academic_year=self.academic_year_var.get()
             )
             
-            # Generar cuotas
+            # Generar cuotas con nueva lógica
             installments_count = self.installments_count_var.get()
             start_date = datetime.strptime(self.start_date_var.get(), '%Y-%m-%d').date()
             calendar = self.finance_service.payment_calendar_repo.get_by_id(calendar_id)
+            
+            # Nueva lógica para cuotas
+            total_final = calendar['final_amount']
+            initial_payment = self.initial_payment_var.get()
+            balance_for_installments = total_final - initial_payment
+            installment_amount = balance_for_installments / installments_count
             
             installments_list = []
             for i in range(installments_count):
                 due_date = (start_date.replace(day=1) + timedelta(days=32*i)).replace(day=1)
                 installments_list.append({
-                    'amount': calendar['final_amount'] / installments_count,
+                    'amount': installment_amount,
                     'due_date': due_date.strftime('%Y-%m-%d')
                 })
             
             self.finance_service.add_installments(calendar_id, installments_list)
+            
+            # Registrar pago inicial si es mayor a 0
+            if initial_payment > 0:
+                # Crear un pago especial para el pago inicial
+                payment_data = {
+                    'student_id': selected_students[0],  # Asociar al primer estudiante
+                    'amount_due': initial_payment,
+                    'amount_paid': initial_payment,
+                    'due_date': date.today().strftime('%Y-%m-%d'),
+                    'status': 'pagado',
+                    'calendar_group': f"initial_payment_{calendar_id}"
+                }
+                self.finance_service.payment_repo.create(payment_data)
             
             self.result = calendar_id
             self.dialog.destroy()
