@@ -189,6 +189,7 @@ class DatabaseModels:
         
         # Niveles educativos
         levels = [
+            ('Preescolar',),
             ('Primaria',),
             ('Secundaria',),
             ('Bachillerato',)

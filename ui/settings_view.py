@@ -11,6 +11,7 @@ import json
 import os
 
 from database.repository import user_repo
+from ui.academic_structure_view import AcademicStructureView
 from config import BASE_DIR
 
 
@@ -107,7 +108,8 @@ class SettingsView:
         self.tab_buttons = {}
         tabs = [
             ("usuarios", "👥 Usuarios"),
-            ("centro", "🏫 Centro")
+            ("centro", "🏫 Centro"),
+            ("estructura", "🏫 Estructura")
         ]
         
         for tab_id, tab_text in tabs:
@@ -194,6 +196,8 @@ class SettingsView:
             self.create_usuarios_content()
         elif tab_name == "centro":
             self.create_centro_content()
+        elif tab_name == "estructura":
+            self.create_estructura_content()
         
         self.update_status(f"Vista: {tab_name.capitalize()}")
     
@@ -721,6 +725,10 @@ class SettingsView:
             
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar la configuración: {str(e)}")
+    
+    def create_estructura_content(self):
+        """Crea contenido de pestaña estructura académica"""
+        AcademicStructureView(self.content_frame)
     
     def on_restablecer_centro_config(self):
         """Restablece el formulario a los valores guardados"""

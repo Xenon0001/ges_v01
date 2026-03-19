@@ -250,6 +250,24 @@ class SubjectRepository(BaseRepository):
         return db.execute_query(query)
 
 
+class LevelRepository(BaseRepository):
+    """Repository para niveles educativos"""
+    
+    def __init__(self):
+        super().__init__('levels')
+
+
+class GradeRepository(BaseRepository):
+    """Repository para grados"""
+    
+    def __init__(self):
+        super().__init__('grades')
+    
+    def get_by_level(self, level_id: int) -> List[Dict[str, Any]]:
+        """Obtiene grados por nivel"""
+        return self.find_by('level_id', level_id)
+
+
 class ClassroomRepository(BaseRepository):
     """Repository para aulas"""
     
@@ -285,6 +303,8 @@ score_repo = ScoreRepository()
 payment_repo = PaymentRepository()
 subject_repo = SubjectRepository()
 classroom_repo = ClassroomRepository()
+level_repo = LevelRepository()
+grade_repo = GradeRepository()
 
 # Repository para teachers (basado en BaseRepository)
 class TeacherRepository(BaseRepository):
