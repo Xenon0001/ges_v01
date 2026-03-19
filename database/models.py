@@ -101,9 +101,11 @@ class DatabaseModels:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 first_name TEXT NOT NULL,
                 last_name TEXT NOT NULL,
+                enrollment_number TEXT DEFAULT NULL,
                 classroom_id INTEGER,
                 enrollment_status TEXT DEFAULT 'activo',
                 tutor_name TEXT,
+                origin_center TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (classroom_id) REFERENCES {TABLES['classrooms']} (id)
             )

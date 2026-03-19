@@ -357,157 +357,276 @@ class StudentsView:
         self.create_student_form_content(form_window, student)
     
     def create_student_form_content(self, parent: tk.Toplevel, student: Optional[Dict[str, Any]]):
-        """Crea el contenido del formulario de estudiante"""
-        # Frame principal
-        main_frame = tk.Frame(parent, bg='#ecf0f1')
+        """Crea diálogo para crear/editar estudiante con número de matrícula automático"""
+        
+        # Configurar diálogo
+        parent.title("Nuevo Estudiante" if not student else "Editar Estudiante")
+        parent.geometry("500x600")
+        parent.resizable(False, False)
+        
+        # Centrar diálogo
+        parent.update_idletasks()
+        x = (parent.winfo_screenwidth() // 2) - (500 // 2)
+        y = (parent.winfo_screenheight() // 2) - (600 // 2)
+        parent.geometry(f"500x600+{x}+{y}")
+        
+        # Frame principal con scroll
+        main_frame = tk.Frame(parent, bg='white')
         main_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        # Título
+        title_text = "👤 Crear Nuevo Estudiante" if not student else "👤 Editar Estudiante"
+        title_label = tk.Label(main_frame, text=title_text, 
+                              font=('Segoe UI', 16, 'bold'), bg='white', fg='#2c3e50')
+        title_label.pack(pady=(0, 20))
+        
+        # Frame para campos
+        fields_frame = tk.Frame(main_frame, bg='white')
+        fields_frame.pack(fill='x', pady=(0, 20))
         
         # Campos del formulario
         fields = {}
         
-        # Nombre
-        tk.Label(main_frame, text="Nombre *:", font=('Segoe UI', 10), bg='#ecf0f1').grid(row=0, column=0, sticky='w', pady=5)
-        fields['first_name'] = tk.Entry(main_frame, font=('Segoe UI', 10), width=30)
-        fields['first_name'].grid(row=0, column=1, pady=5, padx=(10, 0))
+        # 1. Nombre *
+        name_frame = tk.Frame(fields_frame, bg='white')
+        name_frame.pack(fill='x', pady=5)
+        tk.Label(name_frame, text="Nombre *:", font=('Segoe UI', 10, 'bold'), 
+                bg='white', fg='#34495e', width=15, anchor='w').pack(side='left')
+        fields['first_name'] = tk.Entry(name_frame, font=('Segoe UI', 10), width=35)
+        fields['first_name'].pack(side='left', padx=(10, 0))
+        fields['first_name'].focus()
         
-        # Apellido
-        tk.Label(main_frame, text="Apellido *:", font=('Segoe UI', 10), bg='#ecf0f1').grid(row=1, column=0, sticky='w', pady=5)
-        fields['last_name'] = tk.Entry(main_frame, font=('Segoe UI', 10), width=30)
-        fields['last_name'].grid(row=1, column=1, pady=5, padx=(10, 0))
+        # 2. Apellido *
+        last_name_frame = tk.Frame(fields_frame, bg='white')
+        last_name_frame.pack(fill='x', pady=5)
+        tk.Label(last_name_frame, text="Apellido *:", font=('Segoe UI', 10, 'bold'), 
+                bg='white', fg='#34495e', width=15, anchor='w').pack(side='left')
+        fields['last_name'] = tk.Entry(last_name_frame, font=('Segoe UI', 10), width=35)
+        fields['last_name'].pack(side='left', padx=(10, 0))
         
-        # Aula
-        tk.Label(main_frame, text="Aula:", font=('Segoe UI', 10), bg='#ecf0f1').grid(row=2, column=0, sticky='w', pady=5)
+        # 3. Número de Matrícula (generado automáticamente)
+        enrollment_frame = tk.Frame(fields_frame, bg='white')
+        enrollment_frame.pack(fill='x', pady=5)
+        tk.Label(enrollment_frame, text="Matrícula:", font=('Segoe UI', 10, 'bold'), 
+                bg='white', fg='#34495e', width=15, anchor='w').pack(side='left')
         
-        # Obtener aulas disponibles
+        if not student:
+            # Generar número de matrícula automático
+            enrollment_number = self.generate_enrollment_number()
+            fields['enrollment_number'] = tk.Entry(enrollment_frame, font=('Segoe UI', 10, 'bold'), 
+                                                 width=35, state='readonly', bg='#ecf0f1')
+            fields['enrollment_number'].pack(side='left', padx=(10, 0))
+            # Corrección: habilitar temporalmente para insertar
+            fields['enrollment_number'].config(state='normal')
+            fields['enrollment_number'].insert(0, enrollment_number)
+            fields['enrollment_number'].config(state='readonly')
+        else:
+            # Modo edición - mostrar matrícula existente
+            fields['enrollment_number'] = tk.Entry(enrollment_frame, font=('Segoe UI', 10, 'bold'), 
+                                                 width=35, state='readonly', bg='#ecf0f1')
+            fields['enrollment_number'].pack(side='left', padx=(10, 0))
+            if student.get('enrollment_number'):
+                # Corrección: habilitar temporalmente para insertar
+                fields['enrollment_number'].config(state='normal')
+                fields['enrollment_number'].insert(0, student['enrollment_number'])
+                fields['enrollment_number'].config(state='readonly')
+        
+        # 4. Aula
+        classroom_frame = tk.Frame(fields_frame, bg='white')
+        classroom_frame.pack(fill='x', pady=5)
+        tk.Label(classroom_frame, text="Aula:", font=('Segoe UI', 10, 'bold'), 
+                bg='white', fg='#34495e', width=15, anchor='w').pack(side='left')
+        
+        # Obtener aulas con detalles completos
         try:
-            classrooms = classroom_repo.get_all()
-            classroom_names = [f"{c['id']} - {c['name']}" for c in classrooms]
+            classrooms_data = classroom_repo.get_with_details()
+            classroom_options = []
+            for classroom in classrooms_data:
+                classroom_text = f"{classroom['grade_name']} - {classroom['name']} {classroom['shift']}"
+                classroom_options.append((classroom_text, classroom['id']))
         except Exception:
-            classroom_names = ["Error cargando aulas"]
+            classroom_options = [("Error cargando aulas", None)]
         
-        fields['classroom_id'] = ttk.Combobox(main_frame, values=classroom_names, font=('Segoe UI', 10), width=28)
-        if classroom_names == ["Error cargando aulas"]:
+        classroom_values = [opt[0] for opt in classroom_options]
+        fields['classroom_id'] = ttk.Combobox(classroom_frame, values=classroom_values, 
+                                              font=('Segoe UI', 10), width=33, state='readonly')
+        if classroom_options == [("Error cargando aulas", None)]:
             fields['classroom_id'].configure(state='disabled')
-        fields['classroom_id'].grid(row=2, column=1, pady=5, padx=(10, 0))
+        fields['classroom_id'].pack(side='left', padx=(10, 0))
         
-        # Estado
-        tk.Label(main_frame, text="Estado:", font=('Segoe UI', 10), bg='#ecf0f1').grid(row=3, column=0, sticky='w', pady=5)
-        fields['enrollment_status'] = ttk.Combobox(main_frame, values=['activo', 'retirado', 'graduado'], font=('Segoe UI', 10), width=28)
-        fields['enrollment_status'].grid(row=3, column=1, pady=5, padx=(10, 0))
+        # 5. Estado
+        status_frame = tk.Frame(fields_frame, bg='white')
+        status_frame.pack(fill='x', pady=5)
+        tk.Label(status_frame, text="Estado:", font=('Segoe UI', 10, 'bold'), 
+                bg='white', fg='#34495e', width=15, anchor='w').pack(side='left')
+        fields['enrollment_status'] = ttk.Combobox(status_frame, values=['activo', 'retirado', 'graduado'], 
+                                                   font=('Segoe UI', 10), width=33, state='readonly')
+        fields['enrollment_status'].pack(side='left', padx=(10, 0))
         
-        # Tutor
-        tk.Label(main_frame, text="Tutor:", font=('Segoe UI', 10), bg='#ecf0f1').grid(row=4, column=0, sticky='w', pady=5)
-        fields['tutor_name'] = tk.Entry(main_frame, font=('Segoe UI', 10), width=30)
-        fields['tutor_name'].grid(row=4, column=1, pady=5, padx=(10, 0))
+        # 6. Nombre del Tutor
+        tutor_frame = tk.Frame(fields_frame, bg='white')
+        tutor_frame.pack(fill='x', pady=5)
+        tk.Label(tutor_frame, text="Tutor:", font=('Segoe UI', 10, 'bold'), 
+                bg='white', fg='#34495e', width=15, anchor='w').pack(side='left')
+        fields['tutor_name'] = tk.Entry(tutor_frame, font=('Segoe UI', 10), width=35)
+        fields['tutor_name'].pack(side='left', padx=(10, 0))
+        
+        # 7. Centro de Procedencia
+        origin_frame = tk.Frame(fields_frame, bg='white')
+        origin_frame.pack(fill='x', pady=5)
+        tk.Label(origin_frame, text="Procedencia:", font=('Segoe UI', 10, 'bold'), 
+                bg='white', fg='#34495e', width=15, anchor='w').pack(side='left')
+        fields['origin_center'] = tk.Entry(origin_frame, font=('Segoe UI', 10), width=35)
+        fields['origin_center'].pack(side='left', padx=(10, 0))
+        
+        # Separador
+        separator = tk.Frame(main_frame, height=2, bg='#bdc3c7')
+        separator.pack(fill='x', pady=(20, 10))
+        
+        # Frame de botones
+        button_frame = tk.Frame(main_frame, bg='white')
+        button_frame.pack(fill='x', pady=(10, 0))
         
         # Cargar datos si es edición
         if student:
             fields['first_name'].insert(0, student['first_name'])
             fields['last_name'].insert(0, student['last_name'])
             if student.get('classroom_id'):
-                classroom = classroom_repo.get_by_id(student['classroom_id'])
-                if classroom:
-                    fields['classroom_id'].set(f"{classroom['id']} - {classroom['name']}")
+                # Buscar y seleccionar el aula correcta
+                for classroom_text, classroom_id in classroom_options:
+                    if classroom_id == student['classroom_id']:
+                        fields['classroom_id'].set(classroom_text)
+                        break
             fields['enrollment_status'].set(student['enrollment_status'])
             if student.get('tutor_name'):
                 fields['tutor_name'].insert(0, student['tutor_name'])
+            if student.get('origin_center'):
+                fields['origin_center'].insert(0, student['origin_center'])
         else:
-            # Valores por defecto
+            # Valores por defecto para nuevo estudiante
             fields['enrollment_status'].set('activo')
         
+        # Funciones para guardar y cancelar
+        def save_student():
+            """Guarda los datos del estudiante"""
+            try:
+                # Validar campos obligatorios
+                first_name = fields['first_name'].get().strip()
+                last_name = fields['last_name'].get().strip()
+                
+                if not first_name or not last_name:
+                    messagebox.showerror("Error de Validación", 
+                                      "Nombre y apellido son obligatorios")
+                    return
+                
+                if len(first_name) > 100:
+                    messagebox.showerror("Error de Validación", "El nombre no puede exceder 100 caracteres")
+                    return
+                
+                if len(last_name) > 100:
+                    messagebox.showerror("Error de Validación", "El apellido no puede exceder 100 caracteres")
+                    return
+                
+                tutor_name = fields['tutor_name'].get().strip()
+                if len(tutor_name) > 100:
+                    messagebox.showerror("Error de Validación", "El nombre del tutor no puede exceder 100 caracteres")
+                    return
+                
+                # Preparar datos
+                student_data = {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'enrollment_number': fields['enrollment_number'].get().strip(),
+                    'tutor_name': tutor_name,
+                    'origin_center': fields['origin_center'].get().strip(),
+                    'enrollment_status': fields['enrollment_status'].get()
+                }
+                
+                # Procesar aula
+                classroom_text = fields['classroom_id'].get()
+                if classroom_text and ' - ' in classroom_text:
+                    try:
+                        # Buscar el ID correspondiente
+                        for classroom_text_option, classroom_id in classroom_options:
+                            if classroom_text_option == classroom_text and classroom_id:
+                                student_data['classroom_id'] = classroom_id
+                                break
+                    except Exception:
+                        pass
+                
+                # Guardar o actualizar
+                if student:
+                    # Modo edición
+                    success = self.student_service.update_student(student['id'], student_data)
+                    if success:
+                        messagebox.showinfo("Éxito", "Estudiante actualizado correctamente")
+                        parent.destroy()
+                        self.load_students()
+                    else:
+                        messagebox.showerror("Error", "No se pudo actualizar el estudiante")
+                else:
+                    # Modo creación
+                    student_id = self.student_service.create_student(student_data)
+                    if student_id:
+                        messagebox.showinfo("Éxito", "Estudiante creado correctamente")
+                        parent.destroy()
+                        self.load_students()
+                    else:
+                        messagebox.showerror("Error", "No se pudo crear el estudiante")
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo guardar el estudiante: {str(e)}")
+        
+        def cancel_dialog():
+            """Cierra el diálogo sin guardar"""
+            parent.destroy()
+        
         # Botones
-        button_frame = tk.Frame(main_frame, bg='#ecf0f1')
-        button_frame.grid(row=5, column=0, columnspan=2, pady=20)
+        save_btn = tk.Button(button_frame, text="💾 Guardar", font=('Segoe UI', 11, 'bold'),
+                            bg='#27ae60', fg='white', cursor='hand2', command=save_student,
+                            width=12, height=1)
+        save_btn.pack(side='right', padx=(10, 0))
         
-        save_btn = tk.Button(
-            button_frame,
-            text="💾 Guardar",
-            font=('Segoe UI', 10, 'bold'),
-            bg='#27ae60',
-            fg='white',
-            relief='flat',
-            cursor='hand2',
-            command=lambda: self.save_student(parent, fields, student)
-        )
-        save_btn.pack(side='left', padx=5)
+        cancel_btn = tk.Button(button_frame, text="❌ Cancelar", font=('Segoe UI', 11, 'bold'),
+                              bg='#e74c3c', fg='white', cursor='hand2', command=cancel_dialog,
+                              width=12, height=1)
+        cancel_btn.pack(side='right')
         
-        cancel_btn = tk.Button(
-            button_frame,
-            text="❌ Cancelar",
-            font=('Segoe UI', 10),
-            bg='#95a5a6',
-            fg='white',
-            relief='flat',
-            cursor='hand2',
-            command=parent.destroy
-        )
-        cancel_btn.pack(side='left', padx=5)
+        # Bind de Enter para guardar
+        parent.bind('<Return>', lambda e: save_student())
+    
+    def generate_enrollment_number(self):
+        """Genera número de matrícula automático: AÑO-NÚMERO_SECUENCIAL"""
+        try:
+            from datetime import datetime
+            current_year = str(datetime.now().year)
+            
+            # Obtener todos los estudiantes para encontrar el último número del año
+            students = self.student_service.get_all_students()
+            
+            max_number = 0
+            for student in students:
+                enrollment = student.get('enrollment_number', '')
+                if enrollment.startswith(current_year + '-'):
+                    try:
+                        number = int(enrollment.split('-')[1])
+                        max_number = max(max_number, number)
+                    except:
+                        continue
+            
+            # Generar siguiente número
+            next_number = max_number + 1
+            return f"{current_year}-{next_number:03d}"  # Formato: 2024-001
+            
+        except Exception:
+            # Fallback: usar año y 001
+            from datetime import datetime
+            return f"{datetime.now().year}-001"
     
     def save_student(self, parent: tk.Toplevel, fields: Dict, student: Optional[Dict[str, Any]]):
-        """Guarda los datos del estudiante"""
-        try:
-            # Validar campos obligatorios
-            first_name = fields['first_name'].get().strip()
-            last_name = fields['last_name'].get().strip()
-            tutor_name = fields['tutor_name'].get().strip()
-            
-            if not first_name or not last_name:
-                messagebox.showerror("Error de Validación", 
-                                  "Nombre y apellido son obligatorios")
-                return
-            
-            if len(first_name) > 100:
-                messagebox.showerror("Error de Validación", "El nombre no puede exceder 100 caracteres")
-                return
-            
-            if len(last_name) > 100:
-                messagebox.showerror("Error de Validación", "El apellido no puede exceder 100 caracteres")
-                return
-            
-            if len(tutor_name) > 100:
-                messagebox.showerror("Error de Validación", "El nombre del tutor no puede exceder 100 caracteres")
-                return
-            
-            # Preparar datos
-            student_data = {
-                'first_name': first_name,
-                'last_name': last_name,
-                'tutor_name': fields['tutor_name'].get().strip(),
-                'enrollment_status': fields['enrollment_status'].get()
-            }
-            
-            # Procesar aula
-            classroom_text = fields['classroom_id'].get()
-            if classroom_text and ' - ' in classroom_text:
-                try:
-                    classroom_id = int(classroom_text.split(' - ')[0])
-                    student_data['classroom_id'] = classroom_id
-                except ValueError:
-                    messagebox.showerror("Error de Validación", "El formato del aula seleccionada es inválido")
-                    return
-            
-            # Guardar
-            if student:
-                # Actualizar
-                success = self.student_service.update_student(student['id'], student_data)
-                if success:
-                    messagebox.showinfo("Éxito", "Estudiante actualizado correctamente")
-                    parent.destroy()
-                    self.load_students()
-                else:
-                    messagebox.showerror("Error", "No se pudo actualizar el estudiante")
-            else:
-                # Crear
-                student_id = self.student_service.create_student(student_data)
-                if student_id:
-                    messagebox.showinfo("Éxito", "Estudiante creado correctamente")
-                    parent.destroy()
-                    self.load_students()
-                else:
-                    messagebox.showerror("Error", "No se pudo crear el estudiante")
-        
-        except Exception:
-            messagebox.showerror("Error", "Ocurrió un error al guardar el estudiante. Por favor, intente nuevamente.")
+        """Guarda los datos del estudiante (método obsoleto - reemplazado)"""
+        # Este método es obsoleto, se usa la función interna save_student() en create_student_form_content
+        pass
     
     def show_help(self):
         """Muestra ayuda"""
