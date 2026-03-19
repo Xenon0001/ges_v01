@@ -1,196 +1,152 @@
-# 🎓 GES – Sistema de Gestión Escolar (Offline)
+|-------------------------------------------------------------------------------------------------------|
+|                                                                                                       |
+|                                  | |    |  \  /  |                                                    |
+|                                  | |    |   \/   |                                                    |
+|                                  | |    | |\__/| |                                                    |
+|                                  | |    | |    | | g                                                  |
+|                                                                                                       |
+|                                                                                                       |
+|                                                                                                       |
+|-------------------------------------------------------------------------------------------------------|
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![SQLite](https://img.shields.io/badge/Database-SQLite-lightgrey)
-![Desktop App](https://img.shields.io/badge/Type-Desktop%20App-green)
-![Offline First](https://img.shields.io/badge/Mode-Offline--First-orange)
-![Status](https://img.shields.io/badge/Status-En%20Desarrollo-yellow)
+# GES — Sistema de Gestión Escolar
 
----
-
-## 📌 Descripción
-
-**GES (Sistema de Gestión Escolar)** es una aplicación de escritorio **offline-first**, desarrollada en Python, diseñada para **centros educativos con conectividad limitada**, especialmente en contextos como Guinea Ecuatorial.
-
-El objetivo de GES es **resolver de forma práctica y robusta** la gestión diaria de:
-
-* Estudiantes
-* Matrículas
-* Pagos
-* Historial académico
-* Reportes y estadísticas
-
-Todo funcionando **sin Internet**, con datos persistentes y controlados localmente.
+Sistema de gestión escolar diseñado para centros educativos en Guinea Ecuatorial. Desarrollado con Python, SQLite y Tkinter, funciona completamente offline y en redes locales sin necesidad de conexión a internet.
 
 ---
 
-## ⚠️ Estado del Proyecto
+## Características principales
 
-### 🚧 **ALERTA: PROYECTO EN DESARROLLO ACTIVO**
-
-> ⚠️ **Estado actual:** En desarrollo
->
-> El MVP es **funcional y usable**, pero el proyecto:
->
-> * Sigue en fase de validación
-> * Está siendo sometido a pruebas intensivas
-> * Puede recibir cambios estructurales antes de una versión estable (v1.0)
-
-✔️ Apto para pruebas
-❌ No recomendado aún para despliegue masivo sin acompañamiento técnico
+- **Gestión de estudiantes** — registro, número de matrícula automático, asignación a aulas
+- **Gestión académica** — materias, aulas, importación de notas desde Excel, alertas de rendimiento
+- **Gestión financiera** — seguimiento de pagos, morosidad, calendarios de pago por tutor
+- **Calendarios de pago** — agrupación de varios hijos por tutor con cuotas personalizadas y pago inicial
+- **Reportes PDF** — boletines académicos, morosidad, rendimiento por aula
+- **Configuración del centro** — estructura académica (niveles, grados, aulas), precios de matrícula por nivel, gestión de usuarios
+- **Modo servidor/cliente** — uso en red local (LAN) desde múltiples equipos
+- **Moneda local** — Franco CFA (FCFA)
 
 ---
 
-## ✨ Funcionalidades Principales
+## Tecnologías
 
-* 🔐 Autenticación local con roles
-* 👨‍🎓 Gestión completa de estudiantes (CRUD)
-* 📝 Matrículas con reglas de negocio
-* 💰 Registro y control de pagos
-* 📊 Gráficas y reportes académicos y financieros
-* 🗂️ Historial académico anual en JSON
-* 💾 Backups completos del sistema
-* 📤 Exportación de datos a Excel
-* ⚙️ Configuración persistente del sistema
-* 🖥️ Interfaz gráfica con CustomTkinter
+| Componente        | Tecnología              |
+|-------------------|-------------------------|
+| Lenguaje          | Python 3.11+            |
+| Interfaz          | Tkinter / CustomTkinter |
+| Base de datos     | SQLite                  |
+| API (modo LAN)    | FastAPI + Uvicorn       |
+| Reportes PDF      | ReportLab               |
+| Importación Excel | openpyxl                |
 
 ---
 
-## 🧱 Arquitectura
+## Requisitos
 
-GES utiliza una **arquitectura por capas**, diseñada para ser clara, mantenible y escalable:
+- Python 3.11 o superior
+- Windows 10/11 (versión de escritorio)
+- Sin conexión a internet requerida
 
-```
-UI → Services → Repositories → Database
-```
-```
-ges_proy/
-├── app/                    # Aplicación principal
-│   ├── domain/            # Entidades del dominio (puras)
-│   ├── repositories/      # Patrón Repository para acceso a datos
-│   ├── services/          # Lógica de negocio
-│   └── ui/                # Interfaz de usuario
-├── config/                # Configuración del sistema
-├── controllers/           # Controladores de la aplicación
-├── database/              # Gestión de base de datos
-│   ├── models/            # Modelos SQLAlchemy
-│   │   ├── base.py        # Base común
-│   │   ├── school.py      # School, Grade, Course, etc.
-│   │   ├── person.py      # Person, User, Student, Tutor
-│   │   └── enrollment.py  # Enrollment, Payment
-│   ├── connection.py      # Configuración de conexión
-│   ├── db.py             # Gestión y operaciones DB
-│   └── models.py         # Modelos consolidados
-├── domain/               # Entidades del dominio principales
-├── repositories/         # Implementación de repositorios
-├── services/             # Servicios de negocio
-│   ├── auth_service.py   # Autenticación y usuarios
-│   ├── grade_service.py  # Gestión de grados y cursos
-│   └── student_service.py # Gestión de estudiantes
-├── tests/                # Pruebas del sistema
-│   └── test_services_flow.py
-├── ui/                   # Componentes de interfaz
-│   ├── login_window.py   # Ventana de login
-│   └── main_window.py    # Ventana principal
-├── .ai/                  # Configuración IA
-├── .git/                 # Control de versiones
-├── .venv/                # Entorno virtual
-├── historial/            # Historial de cambios
-├── main.py               # Punto de entrada principal
-├── check_payments.py     # Utilidad de pagos
-├── test_database.py      # Pruebas de base de datos
-├── test_navigation.py    # Pruebas de navegación
-├── test_navigation_simple.py # Pruebas simples de navegación
-├── test_services.py      # Pruebas de servicios
-├── test_structure.py     # Pruebas de estructura
-├── requirements.txt      # Dependencias del proyecto
-├── .gitignore           # Archivos ignorados por Git
-└── ges_database.db      # Base de datos SQLite
+---
+
+## Instalación
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/Xenon0001/ges.git
+cd ges
+
+# Crear entorno virtual
+python -m venv venv
+venv\Scripts\activate  # Windows
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Ejecutar la aplicación
+python main.py
 ```
 
-### Capas principales:
+Al ejecutar por primera vez, GES crea automáticamente la base de datos con el usuario administrador por defecto:
 
-* `app/ui/` → Interfaz gráfica (CustomTkinter)
-* `app/services/` → Reglas de negocio
-* `app/repositories/` → Acceso a datos
-* `app/domain/` → Entidades puras
-* `database/` → Modelos y SQLite
-* `config/` → Configuración persistente
-* `backups/` → Copias de seguridad
-* `historial/` → Historial académico
+- **Usuario:** `admin`
+- **Contraseña:** `admin123`
 
-📌 **La UI no accede directamente a la base de datos.**
+> Se recomienda cambiar la contraseña desde Configuración → Usuarios tras el primer inicio de sesión.
 
 ---
 
-## 🛠️ Stack Tecnológico
+## Modos de uso
 
-* **Lenguaje:** Python 3.10+
-* **UI:** CustomTkinter
-* **Base de datos:** SQLite
-* **ORM:** SQLAlchemy
-* **Gráficas:** Matplotlib
-* **Exportación:** Pandas (Excel)
-* **Persistencia:** JSON + SQLite
-* **Modo:** 100% Offline
-
----
-
-## ▶️ Ejecución del Proyecto
+### Modo normal (un solo equipo)
 
 ```bash
 python main.py
 ```
 
-### Credenciales de prueba (MVP):
+### Modo servidor (red local)
 
-* Usuario: `admin` 
-* Contraseña: `password` 
+```bash
+python api/server.py
+```
 
----
+El servidor queda disponible en `http://0.0.0.0:8000`. Los demás equipos de la red se conectan desde Configuración → Modo cliente introduciendo la IP del servidor.
 
-## 🎯 Filosofía del Proyecto
-
-GES **no intenta competir con grandes ERPs educativos online**.
-
-Su propósito es:
-
-* Ser **simple**
-* Ser **robusto**
-* Ser **comprensible**
-* Resolver el **80% de los problemas reales** de un colegio local
+Documentación de la API disponible en `http://localhost:8000/docs`.
 
 ---
 
-## 🚀 Roadmap (Simplificado)
+## Estructura del proyecto
 
-* [x] MVP funcional completo
-* [x] Arquitectura limpia
-* [x] UI base completa
-* [ ] Pruebas extendidas (QA)
-* [ ] Optimización de MainView y navegación
-* [ ] Empaquetado instalable
-* [ ] Versión estable v1.0
-
----
-
-## 🧠 Autor
-
-**Luis Rafael Eyoma**
-Desarrollador de Software (Python)
-Fundador de **Xenon.py**
-Guinea Ecuatorial 🇬🇶
-
-> Construyendo soberanía tecnológica desde contextos reales.
-
----
-
-## 📄 Licencia
-
-Proyecto en desarrollo.
-Licencia por definir tras la versión estable.
+```
+ges/
+├── main.py                  # Punto de entrada
+├── config.py                # Constantes y configuración
+├── config.json              # Configuración del centro
+├── data/
+│   └── ges.db               # Base de datos SQLite
+├── core/
+│   └── engine.py            # Lógica de negocio
+├── database/
+│   ├── models.py            # Definición de tablas
+│   ├── repository.py        # Capa de acceso a datos
+│   └── connection.py        # Conexión a SQLite
+├── services/                # Servicios por módulo
+├── api/                     # Servidor FastAPI (modo LAN)
+├── ui/                      # Vistas de la interfaz
+└── utils/                   # Utilidades (importador Excel, etc.)
+```
 
 ---
 
-⚠️ **Nota final:**
-Este proyecto está en evolución activa. Cualquier feedback técnico es bienvenido.
+## Roles de usuario
+
+| Rol        | Acceso                                               |
+|------------|------------------------------------------------------|
+| Directiva  | Acceso completo, gestión de usuarios y configuración |
+| Secretaria | Gestión de estudiantes, académico y finanzas         |
+| Usuario    | Solo lectura                                         |
+
+---
+
+## Flujo básico de uso
+
+1. **Configurar el centro** — Configuración → Centro (nombre, año académico, precios de matrícula por nivel)
+2. **Crear la estructura académica** — Configuración → Estructura (niveles, grados, aulas)
+3. **Registrar estudiantes** — Estudiantes → Nuevo Estudiante
+4. **Asignar calendarios de pago** — Al registrar un estudiante el sistema detecta si el tutor ya tiene calendario; si no, ofrece crearlo
+5. **Importar notas** — Académico → Importar (descargar plantilla Excel, rellenar y subir)
+6. **Generar reportes** — Reportes → seleccionar tipo y generar PDF
+
+---
+
+## Autor
+
+Desarrollado por **Luis Rafael Eyoma** — [Xenon.py](https://luisrafael.netlify.app)  
+Bata, Guinea Ecuatorial
+
+---
+
+## Licencia
+
+Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para más información.

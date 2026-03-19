@@ -416,7 +416,7 @@ class SettingsView:
         
         # Frame de precios de matrícula
         prices_frame = tk.Frame(main_frame, bg='white')
-        prices_frame.pack(fill='x', pady=(30, 20))
+        prices_frame.pack(fill='both', expand=True, pady=(30, 20))
         
         # Título de precios
         prices_title = tk.Label(
@@ -431,11 +431,11 @@ class SettingsView:
         # Año académico actual
         current_year = self.config.get('academic_year', datetime.now().year)
         
-        # Frame para la tabla de precios
+        # Frame para la tabla de precios con scroll
         prices_table_frame = tk.Frame(prices_frame, bg='white')
-        prices_table_frame.pack(fill='x')
+        prices_table_frame.pack(fill='both', expand=True)
         
-        # Encabezados
+        # 1. Encabezados PRIMERO (fuera del canvas)
         headers_frame = tk.Frame(prices_table_frame, bg='#34495e', height=30)
         headers_frame.pack(fill='x', pady=(0, 2))
         headers_frame.pack_propagate(False)
@@ -447,9 +447,30 @@ class SettingsView:
         tk.Label(headers_frame, text="Acción", font=('Arial', 11, 'bold'), 
                 bg='#34495e', fg='white', width=15).pack(side='left', padx=10, pady=5)
         
-        # Frame para filas de precios
-        self.prices_rows_frame = tk.Frame(prices_table_frame, bg='white')
-        self.prices_rows_frame.pack(fill='x')
+        # 2. Canvas con altura mínima DESPUÉS
+        prices_canvas = tk.Canvas(prices_table_frame, bg='white')
+        prices_scrollbar = ttk.Scrollbar(prices_table_frame, orient='vertical', command=prices_canvas.yview)
+        
+        # Frame scrollable para las filas
+        self.prices_rows_frame = tk.Frame(prices_canvas, bg='white')
+        
+        # Configurar scroll
+        self.prices_rows_frame.bind(
+            "<Configure>",
+            lambda e: prices_canvas.configure(scrollregion=prices_canvas.bbox("all"))
+        )
+        
+        self.prices_canvas_window = prices_canvas.create_window(
+            (0, 0), window=self.prices_rows_frame, anchor="nw"
+        )
+        prices_canvas.configure(yscrollcommand=prices_scrollbar.set)
+        prices_canvas.bind('<Configure>', lambda e: prices_canvas.itemconfig(
+            self.prices_canvas_window, width=e.width
+        ))
+        
+        # Empaquetar canvas y scrollbar
+        prices_canvas.pack(side='left', fill='both', expand=True)
+        prices_scrollbar.pack(side='right', fill='y')
         
         # Cargar niveles y precios
         self.load_prices_table(current_year)
