@@ -7,7 +7,11 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, date, timedelta
 from dataclasses import dataclass
 
-from database.repository import payment_repo, student_repo
+from database.repository import (
+    payment_repo, student_repo, payment_calendar_repo, 
+    payment_installment_repo, student_calendar_repo, enrollment_price_repo
+)
+from database.connection import db
 from core.engine import CoreEngine, FinancialMetrics, Alert, AlertType, PaymentStatus
 
 
@@ -34,12 +38,40 @@ class TutorPaymentGroup:
     overdue_count: int
 
 
+@dataclass
+class CalendarInstallment:
+    """Cuota de calendario de pago"""
+    installment_number: int
+    amount: float
+    due_date: str
+    status: str = 'pendiente'
+
+
+@dataclass
+class PaymentCalendar:
+    """Calendario de pagos"""
+    id: int
+    tutor_name: str
+    tutor_phone: Optional[str]
+    total_amount: float
+    discount_amount: float
+    final_amount: float
+    academic_year: int
+    status: str
+    created_at: str
+    updated_at: str
+
+
 class FinanceService:
     """Servicio para gestión financiera"""
     
     def __init__(self):
         self.payment_repo = payment_repo
         self.student_repo = student_repo
+        self.payment_calendar_repo = payment_calendar_repo
+        self.payment_installment_repo = payment_installment_repo
+        self.student_calendar_repo = student_calendar_repo
+        self.enrollment_price_repo = enrollment_price_repo
         self.engine = CoreEngine()
     
     def create_payment(self, payment_data: Dict[str, Any]) -> int:
@@ -445,6 +477,217 @@ class FinanceService:
             'students_at_risk_count': len(self.get_students_financial_risk()),
             'generated_at': datetime.now().isoformat()
         }
+    
+    # === MÉTODOS DE CALENDARIOS DE PAGO ===
+    
+    def create_payment_calendar(self, tutor_name: str, tutor_phone: str, 
+                              student_ids: List[int], discount: float = 0, 
+                              academic_year: int = None) -> int:
+        """Crea un calendario de pago para un tutor"""
+        
+        if academic_year is None:
+            academic_year = date.today().year
+        
+        # Verificar que no exista calendario activo para este tutor y año
+        existing = self.get_calendar_by_tutor(tutor_name, academic_year)
+        if existing:
+            raise ValueError(f"El tutor {tutor_name} ya tiene un calendario activo para el año {academic_year}")
+        
+        # Calcular total sumando precios de matrícula
+        total_amount = 0
+        for student_id in student_ids:
+            student = self.student_repo.get_by_id(student_id)
+            if not student:
+                raise ValueError(f"Estudiante con ID {student_id} no encontrado")
+            
+            # Obtener precio según nivel del estudiante
+            price = self._get_student_enrollment_price(student_id, academic_year)
+            total_amount += price
+        
+        # Aplicar descuento
+        final_amount = total_amount - discount
+        if final_amount < 0:
+            raise ValueError("El descuento no puede ser mayor al monto total")
+        
+        # Crear calendario
+        calendar_data = {
+            'tutor_name': tutor_name,
+            'tutor_phone': tutor_phone,
+            'total_amount': total_amount,
+            'discount_amount': discount,
+            'final_amount': final_amount,
+            'academic_year': academic_year,
+            'status': 'activo'
+        }
+        
+        calendar_id = self.payment_calendar_repo.create(calendar_data)
+        
+        # Añadir estudiantes al calendario
+        for student_id in student_ids:
+            price = self._get_student_enrollment_price(student_id, academic_year)
+            self.student_calendar_repo.add_student_to_calendar(student_id, calendar_id, price)
+        
+        return calendar_id
+    
+    def add_installments(self, calendar_id: int, installments_list: List[Dict[str, Any]]) -> bool:
+        """Añade cuotas a un calendario de pago"""
+        
+        # Verificar que el calendario exista
+        calendar = self.payment_calendar_repo.get_by_id(calendar_id)
+        if not calendar:
+            raise ValueError(f"Calendario con ID {calendar_id} no encontrado")
+        
+        # Verificar que no existan cuotas previas
+        existing_installments = self.payment_installment_repo.get_by_calendar(calendar_id)
+        if existing_installments:
+            raise ValueError("El calendario ya tiene cuotas definidas")
+        
+        # Crear cuotas
+        for i, installment in enumerate(installments_list, 1):
+            installment_data = {
+                'calendar_id': calendar_id,
+                'installment_number': i,
+                'amount': installment['amount'],
+                'due_date': installment['due_date'],
+                'status': 'pendiente'
+            }
+            self.payment_installment_repo.create(installment_data)
+        
+        return True
+    
+    def get_calendar_by_tutor(self, tutor_name: str, academic_year: int = None) -> Optional[Dict[str, Any]]:
+        """Obtiene calendario activo de un tutor"""
+        
+        if academic_year is None:
+            academic_year = date.today().year
+        
+        calendars = self.payment_calendar_repo.get_by_tutor(tutor_name, academic_year)
+        
+        # Retornar el primer calendario activo
+        for calendar in calendars:
+            if calendar['status'] == 'activo':
+                return self.payment_calendar_repo.get_with_details(calendar['id'])
+        
+        return None
+    
+    def assign_student_to_calendar(self, student_id: int, calendar_id: int) -> bool:
+        """Añade estudiante a calendario existente y recalcula total"""
+        
+        # Verificar que existan
+        student = self.student_repo.get_by_id(student_id)
+        calendar = self.payment_calendar_repo.get_by_id(calendar_id)
+        
+        if not student:
+            raise ValueError(f"Estudiante con ID {student_id} no encontrado")
+        if not calendar:
+            raise ValueError(f"Calendario con ID {calendar_id} no encontrado")
+        
+        # Obtener precio del estudiante
+        price = self._get_student_enrollment_price(student_id, calendar['academic_year'])
+        
+        # Añadir estudiante
+        self.student_calendar_repo.add_student_to_calendar(student_id, calendar_id, price)
+        
+        # Recalcular total
+        students = self.student_calendar_repo.get_calendar_students(calendar_id)
+        new_total = sum(s['enrollment_price'] for s in students)
+        new_final = new_total - calendar['discount_amount']
+        
+        # Actualizar calendario
+        self.payment_calendar_repo.update(calendar_id, {
+            'total_amount': new_total,
+            'final_amount': new_final,
+            'updated_at': datetime.now().isoformat()
+        })
+        
+        return True
+    
+    def pay_installment(self, installment_id: int, amount: float, paid_date: str = None) -> bool:
+        """Registra el pago de una cuota"""
+        
+        installment = self.payment_installment_repo.get_by_id(installment_id)
+        if not installment:
+            raise ValueError(f"Cuota con ID {installment_id} no encontrada")
+        
+        if installment['status'] == 'pagado':
+            raise ValueError("Esta cuota ya está pagada")
+        
+        # Validar monto
+        if amount > installment['amount']:
+            raise ValueError("El monto pagado excede el monto de la cuota")
+        
+        # Marcar como pagada
+        success = self.payment_installment_repo.mark_as_paid(installment_id, amount)
+        
+        if success and paid_date:
+            self.payment_installment_repo.update(installment_id, {'paid_date': paid_date})
+        
+        # Verificar si todas las cuotas están pagas para actualizar estado del calendario
+        self._update_calendar_status(installment['calendar_id'])
+        
+        return success
+    
+    def _get_student_enrollment_price(self, student_id: int, academic_year: int) -> float:
+        """Obtiene precio de matrícula de un estudiante según su nivel"""
+        
+        student = self.student_repo.get_by_id(student_id)
+        if not student:
+            raise ValueError(f"Estudiante con ID {student_id} no encontrado")
+        
+        # Obtener level_id del estudiante a través de classroom
+        if not student.get('classroom_id'):
+            raise ValueError(f"El estudiante {student['first_name']} {student['last_name']} no tiene aula asignada")
+        
+        # Obtener classroom para luego obtener level_id
+        classroom_query = f"""
+            SELECT c.*, g.level_id 
+            FROM classrooms c
+            JOIN grades g ON c.grade_id = g.id
+            WHERE c.id = ?
+        """
+        classrooms = db.execute_query(classroom_query, (student['classroom_id'],))
+        
+        if not classrooms:
+            raise ValueError("No se pudo determinar el nivel del estudiante")
+        
+        level_id = classrooms[0]['level_id']
+        
+        # Obtener precio del nivel
+        prices = self.enrollment_price_repo.get_by_year(academic_year)
+        for price in prices:
+            if price['level_id'] == level_id:
+                return price['price']
+        
+        # Si no hay precio definido, usar valor por defecto
+        return 0.0
+    
+    def _update_calendar_status(self, calendar_id: int) -> None:
+        """Actualiza el estado de un calendario basado en sus cuotas"""
+        
+        installments = self.payment_installment_repo.get_by_calendar(calendar_id)
+        
+        if not installments:
+            return
+        
+        # Contar estados
+        paid_count = sum(1 for i in installments if i['status'] == 'pagado')
+        total_count = len(installments)
+        
+        # Determinar nuevo estado
+        if paid_count == total_count:
+            new_status = 'completado'
+        elif paid_count > 0:
+            new_status = 'activo'
+        else:
+            new_status = 'activo'
+        
+        # Actualizar si cambió
+        calendar = self.payment_calendar_repo.get_by_id(calendar_id)
+        if calendar and calendar['status'] != new_status:
+            self.payment_calendar_repo.update(calendar_id, {
+                'status': new_status,
+                'updated_at': datetime.now().isoformat()
+            })
 
 
 # Instancia global del servicio

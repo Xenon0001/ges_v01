@@ -324,6 +324,162 @@ class EnrollmentPriceRepository(BaseRepository):
         return 1
 
 
+class PaymentCalendarRepository(BaseRepository):
+    """Repository para calendarios de pago"""
+    
+    def __init__(self):
+        super().__init__('payment_calendars')
+    
+    def get_by_tutor(self, tutor_name: str, academic_year: int = None) -> List[Dict[str, Any]]:
+        """Obtiene calendarios de un tutor"""
+        if academic_year:
+            query = f"""
+                SELECT * FROM {self.table} 
+                WHERE tutor_name = ? AND academic_year = ?
+                ORDER BY created_at DESC
+            """
+            return db.execute_query(query, (tutor_name, academic_year))
+        else:
+            return self.find_by('tutor_name', tutor_name)
+    
+    def get_active_calendars(self) -> List[Dict[str, Any]]:
+        """Obtiene calendarios activos"""
+        query = f"""
+            SELECT * FROM {self.table} 
+            WHERE status = 'activo'
+            ORDER BY created_at DESC
+        """
+        return db.execute_query(query)
+    
+    def get_with_details(self, calendar_id: int) -> Optional[Dict[str, Any]]:
+        """Obtiene calendario con detalles de cuotas y estudiantes"""
+        # Obtener calendario
+        calendar = self.get_by_id(calendar_id)
+        if not calendar:
+            return None
+        
+        # Obtener cuotas
+        installments_query = f"""
+            SELECT * FROM {TABLES['payment_installments']}
+            WHERE calendar_id = ?
+            ORDER BY installment_number
+        """
+        installments = db.execute_query(installments_query, (calendar_id,))
+        
+        # Obtener estudiantes
+        students_query = f"""
+            SELECT sc.*, s.first_name, s.last_name, s.enrollment_number
+            FROM {TABLES['student_calendars']} sc
+            JOIN {TABLES['students']} s ON sc.student_id = s.id
+            WHERE sc.calendar_id = ?
+        """
+        students = db.execute_query(students_query, (calendar_id,))
+        
+        calendar['installments'] = installments
+        calendar['students'] = students
+        
+        return calendar
+
+
+class PaymentInstallmentRepository(BaseRepository):
+    """Repository para cuotas de pago"""
+    
+    def __init__(self):
+        super().__init__('payment_installments')
+    
+    def get_by_calendar(self, calendar_id: int) -> List[Dict[str, Any]]:
+        """Obtiene cuotas de un calendario"""
+        query = f"""
+            SELECT * FROM {self.table} 
+            WHERE calendar_id = ?
+            ORDER BY installment_number
+        """
+        return db.execute_query(query, (calendar_id,))
+    
+    def get_pending_installments(self) -> List[Dict[str, Any]]:
+        """Obtiene cuotas pendientes"""
+        query = f"""
+            SELECT pi.*, pc.tutor_name
+            FROM {self.table} pi
+            JOIN {TABLES['payment_calendars']} pc ON pi.calendar_id = pc.id
+            WHERE pi.status = 'pendiente'
+            ORDER BY pi.due_date
+        """
+        return db.execute_query(query)
+    
+    def get_overdue_installments(self) -> List[Dict[str, Any]]:
+        """Obtiene cuotas vencidas"""
+        today = date.today().isoformat()
+        query = f"""
+            SELECT pi.*, pc.tutor_name
+            FROM {self.table} pi
+            JOIN {TABLES['payment_calendars']} pc ON pi.calendar_id = pc.id
+            WHERE pi.due_date < ? AND pi.status != 'pagado'
+            ORDER BY pi.due_date
+        """
+        return db.execute_query(query, (today,))
+    
+    def mark_as_paid(self, installment_id: int, paid_amount: float = None) -> bool:
+        """Marca una cuota como pagada"""
+        installment = self.get_by_id(installment_id)
+        if not installment:
+            return False
+        
+        amount = paid_amount if paid_amount is not None else installment['amount']
+        
+        data = {
+            'status': 'pagado',
+            'paid_amount': amount,
+            'paid_date': date.today().isoformat()
+        }
+        
+        return self.update(installment_id, data) > 0
+
+
+class StudentCalendarRepository(BaseRepository):
+    """Repository para relación estudiante-calendario"""
+    
+    def __init__(self):
+        super().__init__('student_calendars')
+    
+    def get_by_student(self, student_id: int) -> List[Dict[str, Any]]:
+        """Obtiene calendarios de un estudiante"""
+        query = f"""
+            SELECT sc.*, pc.tutor_name, pc.academic_year, pc.status as calendar_status
+            FROM {self.table} sc
+            JOIN {TABLES['payment_calendars']} pc ON sc.calendar_id = pc.id
+            WHERE sc.student_id = ?
+            ORDER BY pc.created_at DESC
+        """
+        return db.execute_query(query, (student_id,))
+    
+    def get_calendar_students(self, calendar_id: int) -> List[Dict[str, Any]]:
+        """Obtiene estudiantes de un calendario"""
+        query = f"""
+            SELECT sc.*, s.first_name, s.last_name, s.enrollment_number, s.classroom_id
+            FROM {self.table} sc
+            JOIN {TABLES['students']} s ON sc.student_id = s.id
+            WHERE sc.calendar_id = ?
+        """
+        return db.execute_query(query, (calendar_id,))
+    
+    def add_student_to_calendar(self, student_id: int, calendar_id: int, enrollment_price: float) -> int:
+        """Añade estudiante a calendario"""
+        # Verificar que no exista ya
+        existing = self.find_by('student_id', student_id)
+        for item in existing:
+            if item['calendar_id'] == calendar_id:
+                return item['id']  # Ya existe
+        
+        data = {
+            'student_id': student_id,
+            'calendar_id': calendar_id,
+            'enrollment_price': enrollment_price
+        }
+        
+        return self.create(data)
+
+
 # Instancias de repositories
 user_repo = UserRepository()
 student_repo = StudentRepository()
@@ -334,6 +490,9 @@ classroom_repo = ClassroomRepository()
 level_repo = LevelRepository()
 grade_repo = GradeRepository()
 enrollment_price_repo = EnrollmentPriceRepository()
+payment_calendar_repo = PaymentCalendarRepository()
+payment_installment_repo = PaymentInstallmentRepository()
+student_calendar_repo = StudentCalendarRepository()
 
 # Repository para teachers (basado en BaseRepository)
 class TeacherRepository(BaseRepository):

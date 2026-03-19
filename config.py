@@ -29,6 +29,9 @@ TABLES = {
     "students": "students",
     "scores": "scores",
     "payments": "payments",
+    "payment_calendars": "payment_calendars",
+    "payment_installments": "payment_installments",
+    "student_calendars": "student_calendars",
     "alerts": "alerts",
     "history": "history"
 }

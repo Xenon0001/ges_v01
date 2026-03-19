@@ -153,6 +153,52 @@ class DatabaseModels:
             )
         """)
         
+        # Tabla payment_calendars
+        db.execute_update(f"""
+            CREATE TABLE IF NOT EXISTS {TABLES['payment_calendars']} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tutor_name TEXT NOT NULL,
+                tutor_phone TEXT,
+                total_amount REAL NOT NULL,
+                discount_amount REAL DEFAULT 0,
+                final_amount REAL NOT NULL,
+                academic_year INTEGER NOT NULL,
+                status TEXT DEFAULT 'activo',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabla payment_installments
+        db.execute_update(f"""
+            CREATE TABLE IF NOT EXISTS {TABLES['payment_installments']} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                calendar_id INTEGER NOT NULL,
+                installment_number INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                due_date DATE NOT NULL,
+                status TEXT DEFAULT 'pendiente',
+                paid_amount REAL DEFAULT 0,
+                paid_date DATE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (calendar_id) REFERENCES {TABLES['payment_calendars']} (id)
+            )
+        """)
+        
+        # Tabla student_calendars
+        db.execute_update(f"""
+            CREATE TABLE IF NOT EXISTS {TABLES['student_calendars']} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER NOT NULL,
+                calendar_id INTEGER NOT NULL,
+                enrollment_price REAL NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (student_id) REFERENCES {TABLES['students']} (id),
+                FOREIGN KEY (calendar_id) REFERENCES {TABLES['payment_calendars']} (id),
+                UNIQUE(student_id, calendar_id)
+            )
+        """)
+        
         # Tabla alerts
         db.execute_update(f"""
             CREATE TABLE IF NOT EXISTS {TABLES['alerts']} (
@@ -275,6 +321,38 @@ TABLE_SCHEMAS = {
             'due_date': str,
             'status': str,
             'calendar_group': str
+        }
+    },
+    'payment_calendars': {
+        'required_fields': ['tutor_name', 'total_amount', 'final_amount', 'academic_year'],
+        'field_types': {
+            'tutor_name': str,
+            'tutor_phone': str,
+            'total_amount': float,
+            'discount_amount': float,
+            'final_amount': float,
+            'academic_year': int,
+            'status': str
+        }
+    },
+    'payment_installments': {
+        'required_fields': ['calendar_id', 'installment_number', 'amount', 'due_date'],
+        'field_types': {
+            'calendar_id': int,
+            'installment_number': int,
+            'amount': float,
+            'due_date': str,
+            'status': str,
+            'paid_amount': float,
+            'paid_date': str
+        }
+    },
+    'student_calendars': {
+        'required_fields': ['student_id', 'calendar_id', 'enrollment_price'],
+        'field_types': {
+            'student_id': int,
+            'calendar_id': int,
+            'enrollment_price': float
         }
     }
 }

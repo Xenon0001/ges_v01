@@ -108,7 +108,8 @@ class FinanceView:
             ("💰 Resumen", "resumen", '#27ae60'),
             ("👤 Por Estudiante", "estudiante", '#3498db'),
             ("⚠️ Morosidad", "morosidad", '#e74c3c'),
-            ("👥 Por Tutor", "tutor", '#f39c12')
+            ("👥 Por Tutor", "tutor", '#f39c12'),
+            ("📅 Calendarios", "calendarios", '#9b59b6')
         ]
         
         for text, section_id, color in sections:
@@ -170,6 +171,8 @@ class FinanceView:
             self.show_morosidad_section()
         elif section_id == "tutor":
             self.show_tutor_section()
+        elif section_id == "calendarios":
+            self.show_calendarios_section()
     
     def update_nav_buttons(self, active_section: str):
         """Actualiza los colores de los botones de navegación"""
@@ -177,7 +180,8 @@ class FinanceView:
             "resumen": '#27ae60',
             "estudiante": '#3498db',
             "morosidad": '#e74c3c',
-            "tutor": '#f39c12'
+            "tutor": '#f39c12',
+            "calendarios": '#9b59b6'
         }
         
         for section_id, btn in self.nav_buttons.items():
@@ -1490,3 +1494,15 @@ class FinanceView:
         self.tutor_tree.insert('', 'end', values=(
             message, '', '', '', '', '', ''
         ))
+    
+    def show_calendarios_section(self):
+        """Muestra la sección de calendarios de pagos"""
+        # Importar aquí para evitar import circular
+        from ui.calendar_view import CalendarManagerView
+        
+        # Limpiar contenido anterior
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+        
+        # Crear vista de calendarios
+        self.calendar_view = CalendarManagerView(self.content_frame, self.finance_service)
