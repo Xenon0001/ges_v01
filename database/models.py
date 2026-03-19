@@ -77,6 +77,17 @@ class DatabaseModels:
             )
         """)
         
+        # Tabla enrollment_prices
+        db.execute_update(f"""
+            CREATE TABLE IF NOT EXISTS enrollment_prices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                level_id INTEGER NOT NULL,
+                price REAL NOT NULL DEFAULT 0,
+                academic_year INTEGER NOT NULL,
+                FOREIGN KEY (level_id) REFERENCES levels(id)
+            )
+        """)
+        
         # Tabla subjects
         db.execute_update(f"""
             CREATE TABLE IF NOT EXISTS {TABLES['subjects']} (

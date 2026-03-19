@@ -414,6 +414,61 @@ class SettingsView:
             width=15
         ).pack(side='left')
         
+        # Frame de precios de matrícula
+        prices_frame = tk.Frame(main_frame, bg='white')
+        prices_frame.pack(fill='x', pady=(30, 20))
+        
+        # Título de precios
+        prices_title = tk.Label(
+            prices_frame,
+            text="💰 Precios de Matrícula por Nivel",
+            font=('Arial', 14, 'bold'),
+            bg='white',
+            fg='#2c3e50'
+        )
+        prices_title.pack(pady=(0, 15))
+        
+        # Año académico actual
+        current_year = self.config.get('academic_year', datetime.now().year)
+        
+        # Frame para la tabla de precios
+        prices_table_frame = tk.Frame(prices_frame, bg='white')
+        prices_table_frame.pack(fill='x')
+        
+        # Encabezados
+        headers_frame = tk.Frame(prices_table_frame, bg='#34495e', height=30)
+        headers_frame.pack(fill='x', pady=(0, 2))
+        headers_frame.pack_propagate(False)
+        
+        tk.Label(headers_frame, text="Nivel", font=('Arial', 11, 'bold'), 
+                bg='#34495e', fg='white', width=15).pack(side='left', padx=10, pady=5)
+        tk.Label(headers_frame, text="Precio (FCFA)", font=('Arial', 11, 'bold'), 
+                bg='#34495e', fg='white', width=15).pack(side='left', padx=10, pady=5)
+        tk.Label(headers_frame, text="Acción", font=('Arial', 11, 'bold'), 
+                bg='#34495e', fg='white', width=15).pack(side='left', padx=10, pady=5)
+        
+        # Frame para filas de precios
+        self.prices_rows_frame = tk.Frame(prices_table_frame, bg='white')
+        self.prices_rows_frame.pack(fill='x')
+        
+        # Cargar niveles y precios
+        self.load_prices_table(current_year)
+        
+        # Botón guardar precios
+        prices_button_frame = tk.Frame(prices_frame, bg='white')
+        prices_button_frame.pack(fill='x', pady=(20, 0))
+        
+        tk.Button(
+            prices_button_frame,
+            text="💾 Guardar Precios",
+            font=('Arial', 11, 'bold'),
+            bg='#27ae60',
+            fg='white',
+            cursor='hand2',
+            command=self.on_save_prices,
+            width=20
+        ).pack(side='right', padx=(0, 10))
+        
         # Cargar datos iniciales
         self.populate_centro_form()
     
@@ -734,3 +789,91 @@ class SettingsView:
         """Restablece el formulario a los valores guardados"""
         self.populate_centro_form()
         self.update_status("Formulario restablecido")
+    
+    def load_prices_table(self, academic_year: int):
+        """Carga la tabla de precios de matrícula"""
+        # Limpiar frame existente
+        for widget in self.prices_rows_frame.winfo_children():
+            widget.destroy()
+        
+        # Obtener niveles
+        try:
+            from database.repository import level_repo, enrollment_price_repo
+            levels = level_repo.get_all()
+            prices = enrollment_price_repo.get_by_year(academic_year)
+            
+            # Crear diccionario de precios por level_id
+            prices_dict = {price['level_id']: price['price'] for price in prices}
+            
+            # Crear fila por cada nivel
+            self.price_entries = {}
+            for level in levels:
+                row_frame = tk.Frame(self.prices_rows_frame, bg='white', height=35)
+                row_frame.pack(fill='x', pady=1)
+                row_frame.pack_propagate(False)
+                
+                # Nombre del nivel
+                tk.Label(row_frame, text=level['name'], font=('Arial', 10), 
+                        bg='white', width=15, anchor='w').pack(side='left', padx=10, pady=7)
+                
+                # Campo de precio
+                price_var = tk.StringVar(value=str(prices_dict.get(level['id'], 0)))
+                price_entry = tk.Entry(row_frame, textvariable=price_var, font=('Arial', 10), 
+                                    width=15, justify='right')
+                price_entry.pack(side='left', padx=10, pady=7)
+                self.price_entries[level['id']] = price_var
+                
+                # Botón de acción
+                action_btn = tk.Button(row_frame, text="Actualizar", font=('Arial', 9),
+                                   bg='#3498db', fg='white', cursor='hand2',
+                                   command=lambda lid=level['id']: self.update_single_price(lid, academic_year))
+                action_btn.pack(side='left', padx=10, pady=7)
+                
+        except Exception as e:
+            tk.Label(self.prices_rows_frame, text=f"Error cargando precios: {str(e)}", 
+                    font=('Arial', 10), bg='white', fg='red').pack(pady=10)
+
+    def on_save_prices(self):
+        """Guarda todos los precios de matrícula"""
+        try:
+            from database.repository import level_repo, enrollment_price_repo
+            
+            current_year = self.config.get('academic_year', datetime.now().year)
+            
+            # Validar y guardar cada precio
+            for level_id, price_var in self.price_entries.items():
+                try:
+                    price = float(price_var.get())
+                    if price < 0:
+                        messagebox.showerror("Error", f"El precio no puede ser negativo")
+                        return
+                    
+                    enrollment_price_repo.set_price(level_id, price, current_year)
+                except ValueError:
+                    messagebox.showerror("Error", f"El precio debe ser un número válido")
+                    return
+            
+            messagebox.showinfo("Éxito", "Precios de matrícula guardados correctamente")
+            self.update_status("Precios de matrícula actualizados")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron guardar los precios: {str(e)}")
+
+    def update_single_price(self, level_id: int, academic_year: int):
+        """Actualiza un precio individual"""
+        try:
+            from database.repository import enrollment_price_repo
+            price_var = self.price_entries[level_id]
+            price = float(price_var.get())
+            
+            if price < 0:
+                messagebox.showerror("Error", "El precio no puede ser negativo")
+                return
+            
+            enrollment_price_repo.set_price(level_id, price, academic_year)
+            messagebox.showinfo("Éxito", "Precio actualizado correctamente")
+            
+        except ValueError:
+            messagebox.showerror("Error", "El precio debe ser un número válido")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo actualizar el precio: {str(e)}")

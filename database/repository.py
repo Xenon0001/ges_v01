@@ -296,6 +296,34 @@ class ClassroomRepository(BaseRepository):
         return result[0]['count'] if result else 0
 
 
+class EnrollmentPriceRepository(BaseRepository):
+    """Repository para precios de matrícula"""
+    
+    def __init__(self):
+        super().__init__('enrollment_prices')
+    
+    def get_by_year(self, academic_year: int) -> List[Dict[str, Any]]:
+        """Obtiene precios de un año académico con nombres de niveles"""
+        query = f"""
+            SELECT ep.*, l.name as level_name
+            FROM {self.table} ep
+            JOIN {TABLES['levels']} l ON ep.level_id = l.id
+            WHERE ep.academic_year = ?
+            ORDER BY l.name
+        """
+        return db.execute_query(query, (academic_year,))
+    
+    def set_price(self, level_id: int, price: float, academic_year: int) -> int:
+        """Inserta o reemplaza precio de matrícula"""
+        query = f"""
+            INSERT OR REPLACE INTO {self.table} 
+            (level_id, price, academic_year) 
+            VALUES (?, ?, ?)
+        """
+        db.execute_update(query, (level_id, price, academic_year))
+        return 1
+
+
 # Instancias de repositories
 user_repo = UserRepository()
 student_repo = StudentRepository()
@@ -305,6 +333,7 @@ subject_repo = SubjectRepository()
 classroom_repo = ClassroomRepository()
 level_repo = LevelRepository()
 grade_repo = GradeRepository()
+enrollment_price_repo = EnrollmentPriceRepository()
 
 # Repository para teachers (basado en BaseRepository)
 class TeacherRepository(BaseRepository):

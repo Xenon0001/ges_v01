@@ -23,6 +23,7 @@ TABLES = {
     "levels": "levels",
     "grades": "grades",
     "classrooms": "classrooms",
+    "enrollment_prices": "enrollment_prices",
     "subjects": "subjects",
     "teachers": "teachers",
     "students": "students",
