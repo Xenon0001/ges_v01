@@ -1,0 +1,112 @@
+erDiagram
+    PERSON ||--o{ STUDENT : "hereda"
+    PERSON ||--o{ TUTOR : "hereda"
+    PERSON ||--o{ TEACHER : "hereda"
+    PERSON ||--o{ USER : "es"
+    
+    STUDENT ||--o{ ENROLLMENT : "participa"
+    ENROLLMENT ||--o{ GRADE : "en"
+    ENROLLMENT ||--o{ ACADEMICYEAR : "durante"
+    ENROLLMENT ||--o{ PAYMENT : "genera"
+    GRADE ||--o{ ACADEMICYEAR : "pertenece"
+    GRADE ||--o{ CLASSROOM : "contiene"
+    ACADEMICYEAR ||--o{ COURSE : "ofrece"
+    STUDENT ||--o{ TUTOR : "asignado a"
+    SCHOOL ||--o{ ACADEMICYEAR : "define"
+    SCHOOL ||--o{ GRADE : "tiene"
+    
+    PERSON {
+        int id PK
+        string name
+        string last_name
+        string email
+        string phone
+        string address
+        string discriminator "polymorphic"
+    }
+    
+    STUDENT {
+        int id FK
+        string student_id UK
+        date birth_date
+        string grade
+        date enrollment_date
+    }
+    
+    USER {
+        int id FK
+        string username UK
+        string password_hash
+        string role "ADMIN, SECRETARY, TEACHER"
+        datetime last_login
+    }
+    
+    TUTOR {
+        int id FK
+        string profession
+        string relationship
+    }
+    
+    TEACHER {
+        int id FK
+        string employee_id UK
+        string specialization
+        date hire_date
+    }
+    
+    ENROLLMENT {
+        int id PK
+        int student_id FK
+        int grade_id FK
+        int academic_year_id FK
+        string status "active, inactive, graduated"
+        string enrollment_number UK
+        date enrollment_date
+    }
+    
+    PAYMENT {
+        int id PK
+        int enrollment_id FK
+        float amount
+        date due_date
+        date payment_date
+        string status "pending, paid, overdue"
+        string payment_method
+    }
+    
+    GRADE {
+        int id PK
+        string name
+        string level "primary, secondary"
+        int capacity
+        float tuition_fee
+    }
+    
+    ACADEMICYEAR {
+        int id PK
+        string year "2024-2025"
+        boolean is_active
+        float tuition_fee
+    }
+    
+    SCHOOL {
+        int id PK
+        string code
+        string name
+        float tuition_fee
+    }
+    
+    CLASSROOM {
+        int id PK
+        string number
+        int capacity
+        boolean has_projector
+        boolean has_computers
+    }
+    
+    COURSE {
+        int id PK
+        string name
+        int credits
+        boolean is_mandatory
+    }

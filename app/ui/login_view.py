@@ -24,7 +24,7 @@ class LoginView:
         # Create main window
         self.root = ctk.CTk()
         self.root.title("GES - Sistema de Gestión Escolar")
-        self.root.geometry("400x500")
+        self.root.geometry("600x500")
         self.root.resizable(False, False)
         
         # Center window on screen
@@ -41,7 +41,7 @@ class LoginView:
         self.root.update_idletasks()
         x = (self.root.winfo_screenwidth() // 2) - (400 // 2)
         y = (self.root.winfo_screenheight() // 2) - (500 // 2)
-        self.root.geometry(f"400x500+{x}+{y}")
+        self.root.geometry(f"600x500+{x}+{y}")
     
     def create_widgets(self):
         """Create login form widgets"""
@@ -50,27 +50,21 @@ class LoginView:
         main_frame.pack(pady=20, padx=20, fill="both", expand=True)
         
         # Title
-        title_label = ctk.CTkLabel(
-            main_frame, 
-            text="GES", 
+        title_label = ctk.CTkLabel(main_frame, text="GES", 
             font=ctk.CTkFont(size=40, weight="bold")
         )
         title_label.pack(pady=(20, 5))
         
-        subtitle_label = ctk.CTkLabel(
-            main_frame, 
-            text="Sistema de Gestión Escolar", 
+        subtitle_label = ctk.CTkLabel(main_frame, text="Sistema de Gestión Escolar", 
             font=ctk.CTkFont(size=16)
         )
         subtitle_label.pack(pady=(0, 30))
         
         # Username field
         username_label = ctk.CTkLabel(main_frame, text="Usuario:")
-        username_label.pack(pady=(20, 5), anchor="w", padx=20)
+        username_label.pack(pady=(20, 5), padx=20)
         
-        self.username_entry = ctk.CTkEntry(
-            main_frame, 
-            placeholder_text="Ingrese su usuario",
+        self.username_entry = ctk.CTkEntry(main_frame, placeholder_text="Ingrese su usuario",
             width=300,
             height=40
         )
@@ -78,24 +72,16 @@ class LoginView:
         
         # Password field
         password_label = ctk.CTkLabel(main_frame, text="Contraseña:")
-        password_label.pack(pady=(15, 5), anchor="w", padx=20)
+        password_label.pack(pady=(15, 5), padx=20)
         
-        self.password_entry = ctk.CTkEntry(
-            main_frame, 
-            placeholder_text="Ingrese su contraseña",
-            show="*",
-            width=300,
-            height=40
+        self.password_entry = ctk.CTkEntry(main_frame, placeholder_text="Ingrese su contraseña",
+            show="*", width=300, height=40
         )
         self.password_entry.pack(pady=5, padx=20)
         
         # Login button
-        self.login_button = ctk.CTkButton(
-            main_frame,
-            text="Iniciar Sesión",
-            width=300,
-            height=40,
-            command=self.handle_login
+        self.login_button = ctk.CTkButton(main_frame, text="Iniciar Sesión", width=300,
+            height=40, command=self.handle_login
         )
         self.login_button.pack(pady=30, padx=20)
         

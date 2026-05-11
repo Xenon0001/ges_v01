@@ -1,0 +1,70 @@
+graph TB
+    subgraph "UI (Presentation)"
+        UI1["LoginView"]
+        UI2["MainView"]
+        UI3["Components"]
+    end
+    
+    subgraph "ViewModel (New)"
+        VM1["StudentViewModel"]
+        VM2["EnrollmentViewModel"]
+        VM3["ReportViewModel"]
+    end
+    
+    subgraph "Services (Application)"
+        S1["StudentService"]
+        S2["EnrollmentService"]
+        S3["PaymentService"]
+        S4["ReportService"]
+    end
+    
+    subgraph "Repositories (Data Access)"
+        R1["StudentRepository"]
+        R2["EnrollmentRepository"]
+        R3["PaymentRepository"]
+    end
+    
+    subgraph "Domain (Business Logic)"
+        D1["Student Entity"]
+        D2["Enrollment Entity"]
+        D3["Payment Entity"]
+        D4["Validation Rules"]
+    end
+    
+    subgraph "Infrastructure"
+        DB["Database<br/>(SQLite/PostgreSQL)"]
+        LOG["Logging Service"]
+        CONFIG["Config Service"]
+        AUDIT["Audit Service"]
+    end
+    
+    UI1 & UI2 & UI3 -->|usa| VM1 & VM2 & VM3
+    VM1 & VM2 & VM3 -->|invoca| S1 & S2 & S3 & S4
+    S1 & S2 & S3 & S4 -->|crea/valida| D1 & D2 & D3 & D4
+    S1 & S2 & S3 & S4 -->|usa| R1 & R2 & R3
+    R1 & R2 & R3 -->|persiste| D1 & D2 & D3
+    R1 & R2 & R3 -->|accede| DB
+    S1 & S2 & S3 & S4 -->|registra| LOG & AUDIT
+    S1 & S2 & S3 & S4 -->|consulta| CONFIG
+    
+    style UI1 fill: #00000
+    style UI2 fill: #00000
+    style UI3 fill: #00000
+    style VM1 fill: #00000
+    style VM2 fill: #00000
+    style VM3 fill: #00000
+    style S1 fill: #00000
+    style S2 fill: #00000
+    style S3 fill: #00000
+    style S4 fill: #00000
+    style D1 fill: #00000
+    style D2 fill: #00000
+    style D3 fill: #00000
+    style D4 fill: #00000
+    style R1 fill: #00000
+    style R2 fill: #00000
+    style R3 fill: #00000
+    style DB fill: #00000
+    style LOG fill: #00000
+    style AUDIT fill: #00000
+    style CONFIG fill: #00000

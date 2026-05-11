@@ -1,0 +1,23 @@
+graph LR
+    A["LoginView<br/>(UI)"]
+    B["AuthService<br/>(validar credenciales)"]
+    C["UserRepository<br/>(buscar usuario)"]
+    D["SQLite<br/>(personas tabla)"]
+    E["Hash SHA-256"]
+    F["MainApplication<br/>(autenticado)"]
+    
+    A -->|username + password| B
+    B -->|calcula hash| E
+    E -->|hash + username| C
+    C -->|query| D
+    D -->|usuario + hash| C
+    C -->|valida| B
+    B -->|update last_login| D
+    B -->|on_login_success| F
+    
+    style A fill: #000000
+    style B fill: #000000
+    style C fill: #000000
+    style D fill: #000000
+    style E fill: #000000
+    style F fill: #000000

@@ -1,0 +1,31 @@
+graph TD
+    A["EnrollmentsView<br/>(UI)"]
+    B["EnrollmentService<br/>(Orquestación)"]
+    C["StudentRepository<br/>(verificaciones)"]
+    D["GradeRepository<br/>(capacidad)"]
+    E["AcademicYearRepository<br/>(año activo)"]
+    F["EnrollmentRepository<br/>(crear matrícula)"]
+    G["PaymentService<br/>(crear plan cuotas)"]
+    H["SQLite<br/>(persiste)"]
+    
+    A -->|enroll_student| B
+    B -->|existe?| C
+    B -->|está duplicada?| C
+    B -->|capacidad OK?| D
+    B -->|año existe?| E
+    C -->|check| C
+    D -->|check| D
+    E -->|check| E
+    C & D & E -->|validaciones OK| F
+    F -->|create| H
+    F -->|enrollment_id| G
+    G -->|crear cuotas| H
+    
+    style A fill: #000000, color:#ffffff
+    style B fill: #000000, color:#ffffff
+    style C fill: #000000, color:#ffffff
+    style D fill: #000000, color:#ffffff
+    style E fill: #000000, color:#ffffff
+    style F fill: #000000, color:#ffffff
+    style G fill: #000000, color:#ffffff
+    style H fill: #000000, color:#ffffff

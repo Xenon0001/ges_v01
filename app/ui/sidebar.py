@@ -6,10 +6,15 @@ Navigation menu for main window
 import customtkinter as ctk
 from typing import Callable, Optional
 
+# Map menu items to view classes
+from app.ui.students.students_view import StudentsView
+from app.ui.enrollments.enrollments_view import EnrollmentsView
+from app.ui.reports_view import ReportsView
+from app.ui.settings_view import SettingsView
+
 
 class Sidebar:
     """Sidebar navigation component"""
-    
     def __init__(self, parent, on_menu_select: Optional[Callable] = None):
         self.parent = parent
         self.on_menu_select = on_menu_select
@@ -120,12 +125,6 @@ class Sidebar:
         
         # Call callback if provided
         if self.on_menu_select:
-            # Map menu items to view classes
-            from app.ui.students.students_view import StudentsView
-            from app.ui.enrollments.enrollments_view import EnrollmentsView
-            from app.ui.reports_view import ReportsView
-            from app.ui.settings_view import SettingsView
-            
             menu_items = {
                 "home": ("home", None),
                 "students": ("students", StudentsView),

@@ -1,0 +1,52 @@
+graph TB
+    subgraph "👤 Presentation Layer (CustomTkinter)"
+        A["UI Components<br/>(Views, Forms)"]
+        A -->|inyecta| B["ViewModel Layer<br/>(no existe aún)"]
+    end
+    
+    subgraph "💼 Application Layer"
+        B -->|usa| C["Service Layer<br/>(Lógica de Negocio)"]
+    end
+    
+    subgraph "🏛️ Domain Layer"
+        D["Entidades de Dominio<br/>(Student, Enrollment, etc)"]
+        E["Business Rules<br/>(Validaciones)"]
+        D & E -.->|puras, sin BD| C
+    end
+    
+    subgraph "🗄️ Data Layer"
+        F["Repository Layer<br/>(Abstracción)"]
+        G["SQLAlchemy ORM<br/>(con transacciones)"]
+        H["Unit of Work Pattern<br/>(manage sessions)"]
+    end
+    
+    subgraph "⚙️ Infrastructure"
+        I["Logging & Audit"]
+        J["Configuration"]
+        K["Exceptions"]
+    end
+    
+    subgraph "💾 Persistence"
+        L["SQLite | PostgreSQL<br/>(flexible)"]
+    end
+    
+    C -->|usa| F
+    F -->|mapea| G
+    G -->|usa| H
+    H -->|usa| L
+    C & F & G -->|usa| I
+    C -->|consulta| J
+    C -->|lanza| K
+    
+    style A fill: #000000, color: #ffffff
+    style B fill: color: #ffffff
+    style C fill: color: #ffffff
+    style D fill: color: #ffffff
+    style E fill: color: #ffffff
+    style F fill: color: #ffffff
+    style G fill: color: #ffffff
+    style H fill: color: #ffffff
+    style I fill: color: #ffffff
+    style J fill: color: #ffffff
+    style K fill: color: #ffffff
+    style L fill: color: #ffffff
