@@ -1,166 +1,145 @@
-# 🏗️ ARQUITECTURA DEL SISTEMA GES (Gestión Escolar)
+# 🏗️ ARQUITECTURA GES (Sistema de Gestión Escolar) - ACTUALIZADO v2.0
 
-**Documento de Análisis Arquitectónico**  
+**Documento de Análisis Arquitectónico - Versión 2.0 (Arquitectura Híbrida)**  
 **Generado:** Mayo 2026  
-**Estado del Proyecto:** En Desarrollo Activo (MVP funcional)
+**Estado del Proyecto:** Refactorización completada - Multi-modo operativo  
+**Análisis:** Basado en código real del proyecto
 
 ---
 
 ## 📋 Tabla de Contenidos
 
-1. [Resumen Ejecutivo](#resumen-ejecutivo)
-2. [Árbol Simplificado del Proyecto](#árbol-simplificado-del-proyecto)
-3. [Diagrama Arquitectónico Principal](#diagrama-arquitectónico-principal)
-4. [Diagramas Secundarios](#diagramas-secundarios)
-5. [Relaciones Importantes](#relaciones-importantes)
-6. [Riesgos Arquitectónicos](#riesgos-arquitectónicos)
-7. [Propuestas de Mejora](#propuestas-de-mejora)
+1. [Resumen Ejecutivo](#1-resumen-ejecutivo)
+2. [Árbol Simplificado del Proyecto](#2-árbol-simplificado-del-proyecto)
+3. [Diagrama Arquitectónico Principal](#3-diagrama-arquitectónico-principal)
+4. [Flujos de Operación](#4-flujos-de-operación)
+5. [Capas Identificadas](#5-capas-identificadas)
+6. [Integraciones API REST](#6-integraciones-api-rest)
+7. [Base de Datos](#7-base-de-datos)
+8. [Relaciones Críticas](#8-relaciones-críticas)
+9. [Riesgos Arquitectónicos](#9-riesgos-arquitectónicos)
+10. [Propuestas de Mejora](#10-propuestas-de-mejora)
 
 ---
 
 ## 1. Resumen Ejecutivo
 
-### Tipo de Arquitectura Detectada
+### 🎯 Tipo de Arquitectura Detectada
 
-**Arquitectura de Capas (Layered Architecture) + Repository Pattern**
+**Arquitectura Híbrida Multi-Modo: Desktop + API REST**
 
-GES implementa una arquitectura por capas bien definida, siguiendo los principios de **Clean Architecture**:
+El proyecto soporta **3 modos de ejecución simultáneamente** sin código duplicado:
 
-```
-┌─────────────────────────────────────────┐
-│  UI Layer (CustomTkinter Desktop)       │
-├─────────────────────────────────────────┤
-│  Service Layer (Lógica de Negocio)      │
-├─────────────────────────────────────────┤
-│  Repository Layer (Acceso a Datos)      │
-├─────────────────────────────────────────┤
-│  Database Layer (SQLAlchemy + SQLite)   │
-└─────────────────────────────────────────┘
-```
+| Modo | Tipo | Punto Entrada | Uso |
+|------|------|---------------|-----|
+| **NORMAL** | Desktop Standalone | `main.py` → GESApplication | Instalación local sin red |
+| **SERVER** | FastAPI REST | `api/server.py` (uvicorn) | Servidor LAN centralizado |
+| **CLIENT** | Desktop + Remoto | `main.py` (GESApiClient) | Cliente conectado a servidor |
 
-### Tecnologías Utilizadas
+### 🛠️ Tecnologías Utilizadas
 
-| Componente | Tecnología | Versión |
-|-----------|-----------|---------|
-| **Base de Datos** | SQLite + SQLAlchemy | 2.0.23 |
-| **Interfaz Gráfica** | CustomTkinter | 5.2.1 |
-| **Procesamiento de Datos** | Pandas | 2.1.4 |
-| **Visualizaciones** | Matplotlib | 3.8.2 |
-| **Excel** | OpenPyXL | 3.1.2 |
+| Componente | Tecnología | Uso |
+|-----------|-----------|-----|
+| **GUI Desktop** | Tkinter (built-in) | Interfaz local |
+| **Framework REST** | FastAPI | Servidor API |
+| **Servidor ASGI** | Uvicorn | Ejecutor FastAPI |
+| **Cliente HTTP** | requests | Modo client |
+| **Base de Datos** | SQLite | Persistencia local |
+| **Validación** | Pydantic | Esquemas API |
+| **Reportes** | ReportLab | PDF generation |
+| **Excel** | OpenPyXL | Importar/exportar |
 | **Lenguaje** | Python | 3.10+ |
 
-### Patrón Arquitectónico
+### 📐 Patrón Arquitectónico Principal
 
-- ✅ **Layered/Clean Architecture:** Separación clara de responsabilidades
-- ✅ **Repository Pattern:** Abstracción del acceso a datos
-- ✅ **Dependency Injection:** Servicios con repositorios inyectados
-- ✅ **MVC adaptado para Desktop:** UI capa de presentación, Servicios como controladores
-- ✅ **Offline-First:** Todo funciona sin conexión de red
+```
+┌──────────────────────────────────────────────────────┐
+│     Repository Pattern + Service Layer (reutilizable) │
+│  Usado por: Desktop + API REST + Cliente Remoto       │
+├──────────────────────────────────────────────────────┤
+│  Capa UI    ← → Capa Services ← → Capa Repository     │
+│  Desktop    ← → FastAPI/Client ← → SQLite Local       │
+└──────────────────────────────────────────────────────┘
+```
 
-### Organización General del Proyecto
-
-**Estructura Conceptual:**
-- **Aplicación Monolítica en Desktop:** Una única aplicación Python con acceso local a SQLite
-- **Modularidad por Dominio:** Cada dominio de negocio (estudiantes, matrículas, pagos, reportes) tiene su propio conjunto de servicios y repositorios
-- **Configuración Centralizada:** Archivo `config/settings.json` para parámetros del sistema
-- **Interfaz Centralizada:** Punto de entrada único mediante `main.py` → `LoginView` → `MainApplication`
+**Ventaja clave:** Un único código de Services y Repository usado por 3 entornos diferentes.
 
 ---
 
 ## 2. Árbol Simplificado del Proyecto
 
 ```
-ges_proy/                                   ← Raíz del proyecto
+ges_proy/                                    ← Raíz del proyecto
 │
-├── 📁 app/                                ← Aplicación principal (lógica)
-│   ├── domain/                            → Entidades puras del dominio
-│   │   └── entities.py                    → Modelos de dominio (sin BD)
-│   │
-│   ├── services/                          → Capa de servicios (lógica de negocio)
-│   │   ├── auth_service.py               → Autenticación y seguridad
-│   │   ├── student_service.py            → Gestión de estudiantes
-│   │   ├── enrollment_service.py         → Matrículas con validaciones
-│   │   ├── payment_service.py            → Pagos y cuotas
-│   │   ├── school_service.py             → Grados y años académicos
-│   │   ├── report_service.py             → Reportes y gráficas
-│   │   ├── export_service.py             → Exportación a Excel
-│   │   ├── backup_service.py             → Backups del sistema
-│   │   ├── academic_history_service.py   → Historial académico JSON
-│   │   ├── settings_service.py           → Configuración del sistema
-│   │   └── tutor_service.py              → Gestión de tutores
-│   │
-│   ├── repositories/                      → Capa de acceso a datos
-│   │   ├── base_repository.py            → CRUD genérico para todas entidades
-│   │   ├── student_repository.py         → Acceso a datos de estudiantes
-│   │   ├── enrollment_repository.py      → Acceso a matrículas
-│   │   ├── user_repository.py            → Acceso a usuarios
-│   │   ├── grade_repository.py           → Acceso a grados
-│   │   ├── academic_year_repository.py   → Acceso a años académicos
-│   │   └── school_repository.py          → Acceso a datos escolares
-│   │
-│   └── ui/                                → Capa de presentación (CustomTkinter)
-│       ├── login_view.py                 → Ventana de autenticación
-│       ├── main_view.py                  → Ventana principal con navegación
-│       ├── sidebar.py                    → Menú lateral
-│       ├── reports_view.py               → Panel de reportes
-│       ├── settings_view.py              → Panel de configuración
-│       │
-│       ├── students/                     → Módulo gestión de estudiantes
-│       │   ├── students_view.py          → Lista y búsqueda
-│       │   └── student_form.py           → Formulario CRUD
-│       │
-│       ├── enrollments/                  → Módulo gestión de matrículas
-│       │   ├── enrollments_view.py       → Lista de matrículas
-│       │   ├── enrollment_form.py        → Formulario de matrícula
-│       │   └── payments_view.py          → Gestión de pagos
-│       │
-│       ├── reports/                      → Módulo de reportes
-│       │   ├── charts_view.py            → Gráficas (matplotlib)
-│       │   └── history_view.py           → Historial académico
-│       │
-│       └── settings/                     → Módulo de configuración
-│           ├── backup_view.py            → Backups
-│           └── export_view.py            → Exportar a Excel
+├── 📄 main.py                              ← 🔴 PUNTO DE ENTRADA (Desktop/Client)
+├── 📄 config.py                            ← Constantes (rutas, puertos)
+├── 📄 config.json                          ← Configuración runtime (modo, IP, puerto)
 │
-├── 📁 database/                          ← Capa de base de datos
-│   ├── models.py                         → Modelos consolidados
-│   ├── connection.py                     → Configuración de conexión
-│   ├── db.py                             → Gestión de sesiones y operaciones DB
-│   │
-│   └── models/                           → Modelos SQLAlchemy (organizados por dominio)
-│       ├── base.py                       → Clase base común
-│       ├── person.py                     → PersonModel, StudentModel, TutorModel, TeacherModel
-│       ├── school.py                     → SchoolModel, GradeModel, AcademicYearModel, CourseModel, ClassroomModel
-│       └── enrollment.py                 → EnrollmentModel, PaymentModel
-│
-├── 📁 config/                            ← Configuración del sistema
-│   └── settings.json                     → Parámetros del sistema (cuotas, capacidades, etc)
-│
-├── 📁 controllers/                       ← Controllers (estructura básica, evolución futura)
+├── 📁 api/                                 ← 🔴 API REST (FastAPI)
+│   ├── server.py                           → Punto entrada FastAPI + middleware CORS
+│   ├── auth_manager.py                     → Tokens JWT Bearer (24h TTL)
+│   ├── routes_auth.py                      → POST /auth/login, /auth/logout
+│   ├── routes_students.py                  → GET/POST /students/
+│   ├── routes_dashboard.py                 → GET /dashboard/ (académico + financiero)
 │   └── __init__.py
 │
-├── 📁 domain/                            ← Entidades de dominio legadas
-│   └── entities.py                       → Modelos de dominio (duplica app/domain/)
+├── 📁 ui/                                  ← 🎨 INTERFAZ DE USUARIO (Tkinter)
+│   ├── login.py                            → Ventana de login (local o remoto)
+│   ├── dashboard.py                        → Panel principal
+│   ├── students_view.py                    → CRUD estudiantes
+│   ├── academic_view.py                    → Calificaciones
+│   ├── academic_structure_view.py          → Grados, materias, aulas
+│   ├── finance_view.py                     → Pagos y cuotas
+│   ├── calendar_view.py                    → Calendario académico
+│   ├── reports_view.py                     → Reportes PDF
+│   ├── settings_view.py                    → Configuración
+│   └── __init__.py
 │
-├── 📁 services/                          ← Servicios legados
-│   └── (coexisten con app/services/)    → Servicios heredados del diseño anterior
+├── 📁 services/                            ← 💼 LÓGICA DE NEGOCIO (reutilizada)
+│   ├── student_service.py                  → CRUD estudiantes + validaciones
+│   ├── academic_service.py                 → Cálculos académicos + alertas
+│   ├── finance_service.py                  → Pagos, cuotas, deuda + alertas
+│   ├── report_service.py                   → Generación reportes (PDF, Excel)
+│   ├── api_client.py                       → Cliente HTTP (para modo client)
+│   └── __init__.py
 │
-├── 📁 repositories/                      ← Repositorios legados
-│   └── (coexisten con app/repositories/)→ Repositorios heredados
+├── 📁 database/                            ← 🗃️ ACCESO A DATOS
+│   ├── models.py                           → Creación de tablas (DDL)
+│   ├── repository.py                       → BaseRepository + CRUD genérico
+│   ├── connection.py                       → Context manager SQLite
+│   └── __init__.py
 │
-├── 📁 ui/                                ← UI legada
-│   └── (coexisten con app/ui/)          → Componentes heredados
+├── 📁 core/                                ← ⚙️ LÓGICA PURA (sin dependencias)
+│   ├── engine.py                           → Cálculos académicos/financieros
+│   │   ├── AcademicMetrics                 → Métricas académicas
+│   │   ├── FinancialMetrics                → Métricas financieras
+│   │   ├── calculate_student_average()     → Promedio trimestral
+│   │   ├── generate_alert()                → Alertas
+│   │   └── ...funciones puras
+│   └── __init__.py
 │
-├── 📁 tests/                             ← Suite de pruebas
-│   ├── test_services_flow.py             → Tests de flujo de servicios
-│   ├── test_database.py                  → Tests de BD
-│   ├── test_navigation.py                → Tests de navegación UI
-│   └── test_structure.py                 → Tests de estructura
+├── 📁 utils/                               ← 🔧 UTILIDADES
+│   ├── helpers.py                          → Funciones compartidas
+│   ├── excel_importer.py                   → Importar estudiantes
+│   └── __init__.py
 │
-├── 📄 main.py                            ← 🔴 PUNTO DE ENTRADA PRINCIPAL
-├── 📄 check_payments.py                  ← Utilidad para verificar pagos
-├── 📄 requirements.txt                   ← Dependencias Python
-└── 📄 README.md                          ← Documentación del proyecto
+├── 📁 tests/                               ← ✅ PRUEBAS
+│   ├── test_services_basic.py
+│   ├── test_repository.py
+│   ├── test_integration_basic.py
+│   └── test_integration.py
+│
+├── 📁 data/                                ← 💾 PERSISTENCIA
+│   └── ges.db                              → SQLite (archivo único)
+│
+├── 📁 docs/                                ← 📚 DOCUMENTACIÓN
+│   └── arquitecture/                       → Análisis arquitectónico
+│       └── ARQUITECTURA_GES.md             → Este archivo
+│
+├── 📁 app/                                 ← ⚠️ ESTRUCTURA HEREDADA (deprecada)
+├── 📁 .venv/                               ← Entorno virtual
+├── 📁 .git/                                ← Control versiones
+└── requirements.txt                        ← Dependencias Python
 ```
 
 ---
@@ -169,1068 +148,702 @@ ges_proy/                                   ← Raíz del proyecto
 
 ```mermaid
 graph TB
-    subgraph "👤 Capas de Usuario"
-
-        A["🔐 Usuario del Sistema<br/>(Admin, Secretaria, Profesor)"]
+    subgraph "👤 USUARIOS"
+        A["Usuario Local<br/>(Instalación Desktop)"]
+        B["Usuario en LAN<br/>(Cliente Remoto)"]
+        C["Aplicación Externa<br/>(Cliente HTTP)"]
     end
     
-    subgraph "🎨 Presentation Layer - UI"
-        A --> LoginView["LoginView<br/>(Autenticación)"]
-        LoginView --> MainApp["MainApplication<br/>(Ventana Principal)"]
-        MainApp --> Sidebar["Sidebar<br/>(Navegación)"]
-        MainApp --> Content["Content Area<br/>(Vistas dinámicas)"]
+    subgraph "🎨 PRESENTATION LAYER"
+        UI_LOGIN["LoginWindow<br/>(Tkinter)"]
+        UI_DASH["DashboardWindow<br/>(Tkinter)"]
+        UI_VIEWS["Views<br/>(Students, Academic,<br/>Finance, Reports)"]
         
-        Content --> StudentsView["StudentsView"]
-        Content --> EnrollmentsView["EnrollmentsView"]
-        Content --> PaymentsView["PaymentsView"]
-        Content --> ReportsView["ReportsView"]
-        Content --> SettingsView["SettingsView"]
+        A -->|inicia| UI_LOGIN
+        B -->|conecta remoto| UI_LOGIN
+        UI_LOGIN -->|autentica| UI_DASH
+        UI_DASH -->|navega| UI_VIEWS
     end
     
-    subgraph "💼 Service Layer - Lógica de Negocio"
-    
-        StudentsView --> StudentService["StudentService<br/>(CRUD estudiantes)"]
-        EnrollmentsView --> EnrollmentService["EnrollmentService<br/>(Validaciones matrícula)"]
-        PaymentsView --> PaymentService["PaymentService<br/>(Pagos y cuotas)"]
-        ReportsView --> ReportService["ReportService<br/>(Análisis datos)"]
-        SettingsView --> SettingsService["SettingsService<br/>(Configuración)"]
+    subgraph "🔐 AUTHENTICATION"
+        AUTH_LOCAL["AuthLocal<br/>(SHA-256)"]
+        AUTH_API["AuthAPI<br/>(JWT Bearer)"]
         
-        LoginView --> AuthService["AuthService<br/>(Autenticación + Hash)"]
-        
-        StudentService --> SchoolService["SchoolService<br/>(Grados y años)"]
-        EnrollmentService --> SchoolService
-        ReportService --> AcademicHistoryService["AcademicHistoryService<br/>(Historial JSON)"]
-        
-        SettingsView --> ExportService["ExportService<br/>(Excel)"]
-        SettingsView --> BackupService["BackupService<br/>(Backups)"]
+        A -->|modo normal| AUTH_LOCAL
+        B -->|modo client| AUTH_API
+        C -->|modo server| AUTH_API
     end
     
-    subgraph "🗄️ Repository Layer - Acceso a Datos"
-        StudentService --> BaseRepository["BaseRepository<br/>(CRUD genérico)"]
-        EnrollmentService --> BaseRepository
-        PaymentService --> BaseRepository
-        AuthService --> BaseRepository
-        SchoolService --> BaseRepository
+    subgraph "💼 SERVICE LAYER (reutilizable)"
+        STUDENT["StudentService<br/>(CRUD + validaciones)"]
+        ACADEMIC["AcademicService<br/>(Cálculos notas)"]
+        FINANCE["FinanceService<br/>(Pagos + alertas)"]
+        REPORT["ReportService<br/>(PDF + Excel)"]
         
-        StudentService --> StudentRepository["StudentRepository<br/>(Búsquedas específicas)"]
-        EnrollmentService --> EnrollmentRepository["EnrollmentRepository<br/>(Matrículas específicas)"]
-        PaymentService --> PaymentRepository["PaymentRepository<br/>(Pagos específicos)"]
-        AuthService --> UserRepository["UserRepository<br/>(Usuarios específicos)"]
+        UI_VIEWS -->|invoca| STUDENT & ACADEMIC & FINANCE & REPORT
     end
     
-    subgraph "🗃️ Database Layer - SQLAlchemy + SQLite"
-        BaseRepository --> SQLAlchemy["SQLAlchemy ORM"]
-        StudentRepository --> SQLAlchemy
-        EnrollmentRepository --> SQLAlchemy
-        PaymentRepository --> SQLAlchemy
-        UserRepository --> SQLAlchemy
+    subgraph "⚙️ CORE ENGINE (lógica pura)"
+        CALC["CoreEngine<br/>(cálculos determinísticos<br/>sin BD ni red)"]
         
-        SQLAlchemy --> Models["Modelos de Base de Datos<br/>PersonModel, StudentModel, EnrollmentModel,<br/>PaymentModel, GradeModel, AcademicYearModel, etc"]
-        
-        Models --> SQLite["SQLite<br/>(base de datos local)"]
+        ACADEMIC -->|usa| CALC
+        FINANCE -->|usa| CALC
     end
     
-    style A fill: #000000
-    style LoginView fill: #00000
-    style MainApp fill: #000000
-    style Content fill: #000000
-    style StudentService fill: #000000
-    style EnrollmentService fill: #000000
-    style PaymentService fill: #000000
-    style AuthService fill: #000000
-    style BaseRepository fill: #000000
-    style SQLAlchemy fill: #000000
-    style SQLite fill: #000000
+    subgraph "🗄️ REPOSITORY LAYER"
+        BASE_REPO["BaseRepository<br/>(CRUD genérico)"]
+        REPO["Repositorios específicos<br/>(User, Student,<br/>Score, Payment)"]
+        
+        STUDENT & ACADEMIC & FINANCE & REPORT -->|usa| REPO
+        REPO -->|hereda de| BASE_REPO
+    end
+    
+    subgraph "📡 API REST LAYER (FastAPI)"
+        API_AUTH["/auth/login<br/>POST - Bearer Token"]
+        API_STUDENTS["/students<br/>GET/POST/PUT/DELETE"]
+        API_DASH["/dashboard<br/>GET - Métricas"]
+        
+        C -->|HTTP| API_AUTH & API_STUDENTS & API_DASH
+        API_AUTH & API_STUDENTS & API_DASH -->|usa| STUDENT & ACADEMIC & FINANCE
+    end
+    
+    subgraph "📡 HTTP CLIENT (modo client)"
+        API_CLIENT["GESApiClient<br/>(requests)"]
+        
+        B -->|invoca| API_CLIENT
+        API_CLIENT -->|HTTP| FastAPI["FastAPI Server<br/>(puerto 8000)"]
+        FastAPI -->|usa| API_AUTH & API_STUDENTS & API_DASH
+    end
+    
+    subgraph "🗃️ DATABASE LAYER"
+        CONNECTION["SQLite Connection<br/>(context manager)"]
+        MODELS["Database Models<br/>(16 tablas)"]
+        
+        BASE_REPO -->|usa| CONNECTION
+        CONNECTION -->|mapea| MODELS
+    end
+    
+    subgraph "💾 PERSISTENCE"
+        SQLITE["SQLite DB<br/>(data/ges.db)"]
+        
+        MODELS -->|SQL| SQLITE
+    end
+    
+    style A fill:#e3f2fd
+    style B fill:#e3f2fd
+    style C fill:#e3f2fd
+    style UI_LOGIN fill:#fff3e0
+    style UI_DASH fill:#fff3e0
+    style UI_VIEWS fill:#fff3e0
+    style STUDENT fill:#e8f5e9
+    style ACADEMIC fill:#e8f5e9
+    style FINANCE fill:#e8f5e9
+    style REPORT fill:#e8f5e9
+    style CALC fill:#fffde7
+    style BASE_REPO fill:#fce4ec
+    style REPO fill:#fce4ec
+    style API_AUTH fill:#c8e6c9
+    style API_STUDENTS fill:#c8e6c9
+    style API_DASH fill:#c8e6c9
+    style API_CLIENT fill:#ffccbc
+    style FastAPI fill:#ffccbc
+    style CONNECTION fill:#b3e5fc
+    style MODELS fill:#b3e5fc
+    style SQLITE fill:#ffccbc
 ```
-
-### 📍 Descripción del Flujo Principal
-
-**Ejemplo: Usuario crea una nueva matrícula**
-
-1. **UI Layer:** Usuario hace clic en "Nueva Matrícula" en `EnrollmentsView`
-2. **Service Layer:** Se invoca `EnrollmentService.enroll_student()`
-   - ✔️ Valida que el estudiante exista
-   - ✔️ Valida que el grado exista
-   - ✔️ Valida que no esté duplicada en el año
-   - ✔️ Valida capacidad del grado
-3. **Repository Layer:** `EnrollmentRepository.create(EnrollmentModel)` → acceso a datos
-4. **Database Layer:** SQLAlchemy guarda en SQLite
-5. **Response:** El resultado se devuelve a la UI para mostrar feedback al usuario
 
 ---
 
-## 4. Diagramas Secundarios
+## 4. Flujos de Operación
 
-### 4.1 Flujo de Autenticación
+### 4.1 Modo NORMAL (Desktop Standalone)
 
 ```mermaid
-graph LR
-    A["LoginView<br/>(UI)"]
-    B["AuthService<br/>(validar credenciales)"]
-    C["UserRepository<br/>(buscar usuario)"]
-    D["SQLite<br/>(personas tabla)"]
-    E["Hash SHA-256"]
-    F["MainApplication<br/>(autenticado)"]
+sequenceDiagram
+    participant User
+    participant UI as Tkinter UI
+    participant Services
+    participant Repository
+    participant SQLite
     
-    A -->|username + password| B
-    B -->|calcula hash| E
-    E -->|hash + username| C
-    C -->|query| D
-    D -->|usuario + hash| C
-    C -->|valida| B
-    B -->|update last_login| D
-    B -->|on_login_success| F
-    
-    style A fill: #000000
-    style B fill: #000000
-    style C fill: #000000
-    style D fill: #000000
-    style E fill: #000000
-    style F fill: #000000
+    User ->> UI: Inicia aplicación
+    UI ->> Services: AuthService.authenticate()
+    Services ->> Repository: UserRepository.find_by_username()
+    Repository ->> SQLite: SELECT * FROM users
+    SQLite -->> Repository: user_data
+    Repository -->> Services: usuario
+    Services -->> UI: login exitoso
+    UI ->> UI: mostrar Dashboard
+    User ->> UI: Navega a Estudiantes
+    UI ->> Services: StudentService.get_all()
+    Services ->> Repository: StudentRepository.get_all()
+    Repository ->> SQLite: SELECT * FROM students
+    SQLite -->> Repository: [students]
+    Repository -->> Services: [Student objects]
+    Services -->> UI: mostrar lista
 ```
 
-**Seguridad:**
-- ✅ Contraseñas hasheadas con SHA-256
-- ✅ Validación de mínimo 6 caracteres
-- ✅ Registro de último login
-- ✅ Verificación de estado activo del usuario
-
----
-
-### 4.2 Flujo de Matrículas (Enrollments)
+### 4.2 Modo CLIENT (Remoto vía HTTP)
 
 ```mermaid
-graph TD
-    A["EnrollmentsView<br/>(UI)"]
-    B["EnrollmentService<br/>(Orquestación)"]
-    C["StudentRepository<br/>(verificaciones)"]
-    D["GradeRepository<br/>(capacidad)"]
-    E["AcademicYearRepository<br/>(año activo)"]
-    F["EnrollmentRepository<br/>(crear matrícula)"]
-    G["PaymentService<br/>(crear plan cuotas)"]
-    H["SQLite<br/>(persiste)"]
+sequenceDiagram
+    participant User
+    participant ClientUI as Client UI<br/>(local)
+    participant APIClient as GESApiClient<br/>(HTTP)
+    participant FastAPI as FastAPI Server<br/>(LAN)
+    participant Services as Services +<br/>Repository
+    participant RemoteSQLite as SQLite<br/>(servidor)
     
-    A -->|enroll_student| B
-    B -->|existe?| C
-    B -->|está duplicada?| C
-    B -->|capacidad OK?| D
-    B -->|año existe?| E
-    C -->|check| C
-    D -->|check| D
-    E -->|check| E
-    C & D & E -->|validaciones OK| F
-    F -->|create| H
-    F -->|enrollment_id| G
-    G -->|crear cuotas| H
-    
-    style A fill: #000000, color:#ffffff
-    style B fill: #000000, color:#ffffff
-    style C fill: #000000, color:#ffffff
-    style D fill: #000000, color:#ffffff
-    style E fill: #000000, color:#ffffff
-    style F fill: #000000, color:#ffffff
-    style G fill: #000000, color:#ffffff
-    style H fill: #000000, color:#ffffff
+    User ->> ClientUI: Ingresa credenciales
+    ClientUI ->> APIClient: login(username, password)
+    APIClient ->> FastAPI: POST /auth/login
+    FastAPI ->> Services: AuthService.authenticate()
+    Services ->> RemoteSQLite: queries
+    RemoteSQLite -->> Services: datos
+    Services -->> FastAPI: válido
+    FastAPI ->> FastAPI: generar JWT token (24h)
+    FastAPI -->> APIClient: {token, user_data}
+    APIClient ->> APIClient: guardar token
+    APIClient -->> ClientUI: login exitoso
+    ClientUI ->> ClientUI: mostrar Dashboard
+    User ->> ClientUI: solicita estudiantes
+    ClientUI ->> APIClient: GET /students/
+    APIClient ->> FastAPI: GET /students/<br/>Authorization: Bearer {token}
+    FastAPI ->> Services: StudentService.get_all()
+    Services ->> RemoteSQLite: SELECT * FROM students
+    RemoteSQLite -->> Services: [students]
+    Services -->> FastAPI: [data]
+    FastAPI -->> APIClient: [students JSON]
+    APIClient -->> ClientUI: mostrar estudiantes
 ```
 
-**Reglas de Negocio Validadas:**
-- ✅ Estudiante no puede matricularse dos veces en mismo año
-- ✅ El grado no debe superar capacidad máxima
-- ✅ El estudiante debe existir en el sistema
-- ✅ El año académico debe estar activo
+### 4.3 Modo SERVER (API Pura)
+
+```mermaid
+sequenceDiagram
+    participant Client as Cliente Externo<br/>(Postman, Móvil)
+    participant FastAPI as FastAPI Server
+    participant AuthMgr as auth_manager<br/>(JWT)
+    participant Services
+    participant Repository
+    participant SQLite
+    
+    Client ->> FastAPI: POST /auth/login<br/>{username, password}
+    FastAPI ->> AuthMgr: authenticate()
+    AuthMgr ->> Services: validar usuario
+    Services ->> Repository: queries
+    Repository ->> SQLite: SELECT * FROM users
+    SQLite -->> Repository: user
+    Repository -->> Services: user_object
+    Services -->> AuthMgr: válido
+    AuthMgr ->> AuthMgr: crear JWT token
+    AuthMgr -->> FastAPI: token + metadata
+    FastAPI -->> Client: {token, expires_at}
+    Client ->> FastAPI: GET /students/<br/>Authorization: Bearer {token}
+    FastAPI ->> AuthMgr: validar_token()
+    AuthMgr -->> FastAPI: válido
+    FastAPI ->> Services: StudentService.get_all()
+    Services ->> Repository: CRUD queries
+    Repository ->> SQLite: SELECT * FROM students
+    SQLite -->> Repository: [students]
+    Repository -->> Services: [objects]
+    Services -->> FastAPI: [data]
+    FastAPI -->> Client: [students JSON]
+```
 
 ---
 
-### 4.3 Arquitectura de Capas Detallada
+## 5. Capas Identificadas
+
+### 5.1 Capa de Presentación (UI)
+
+**Ubicación:** `ui/` (8 vistas principales - Tkinter)
+
+| Componente | Responsabilidad |
+|-----------|-----------------|
+| **LoginWindow** | Autenticación (local o remota vía API) |
+| **DashboardWindow** | Resumen, alertas, métricas |
+| **StudentsView** | CRUD estudiantes, búsqueda |
+| **AcademicView** | Calificaciones por trimestre |
+| **AcademicStructureView** | Grados, materias, aulas |
+| **FinanceView** | Pagos, cuotas, deuda |
+| **CalendarView** | Calendario académico |
+| **ReportsView** | Generación reportes PDF/Excel |
+| **SettingsView** | Configuración del sistema |
+
+---
+
+### 5.2 Capa de Servicios (Lógica de Negocio)
+
+**Ubicación:** `services/` (reutilizable por Desktop + API)
+
+| Servicio | Responsabilidad |
+|----------|-----------------|
+| **StudentService** | CRUD + validaciones email/edad + búsqueda |
+| **AcademicService** | Promedios, alertas rendimiento |
+| **FinanceService** | Pagos, deuda, alertas morosidad |
+| **ReportService** | Reportes PDF/Excel |
+| **GESApiClient** | Cliente HTTP (modo client) |
+
+**Características:**
+- ✅ Orquestación de operaciones
+- ✅ Validaciones de negocio
+- ✅ Generación de alertas
+- ✅ Reutilizable en Desktop + API REST
+
+---
+
+### 5.3 Core Engine (Lógica Pura)
+
+**Ubicación:** `core/engine.py`
+
+**Ventajas:**
+- ⚙️ Sin dependencias externas (no importa BD, HTTP)
+- ⚙️ Funciones matemáticas determinísticas
+- ⚙️ Fácil testing unitario
+
+**Componentes:**
+```python
+AcademicMetrics:
+    - average: float
+    - passed_subjects: int
+    - failed_subjects: int
+    - recovery_count: int
+
+FinancialMetrics:
+    - total_due: float
+    - total_paid: float
+    - outstanding: float
+    - days_overdue: int
+
+# Cálculos
+- calculate_student_average(scores)
+- generate_academic_alert(metrics)
+- generate_financial_alert(metrics)
+```
+
+---
+
+### 5.4 Capa de Repositorios (Acceso a Datos)
+
+**Ubicación:** `database/repository.py`
+
+**Patrón:** Repository genérico + específicos
+
+```python
+class BaseRepository:
+    - create(model) → id
+    - get(id) → object
+    - get_all() → [objects]
+    - update(id, data) → bool
+    - delete(id) → bool
+
+class UserRepository:
+    - find_by_username(username) → User
+    - authenticate(username, hash) → bool
+
+class StudentRepository:
+    - find_by_aula(aula_id) → [Student]
+    - search(name, grade) → [Student]
+    - is_enrolled(student_id, year_id) → bool
+```
+
+---
+
+### 5.5 Capa de Base de Datos
+
+**Ubicación:** `database/`
+
+| Archivo | Responsabilidad |
+|---------|-----------------|
+| **models.py** | Creación DDL (16 tablas) |
+| **repository.py** | CRUD + queries |
+| **connection.py** | Context manager SQLite |
+
+---
+
+### 5.6 Capa de API REST
+
+**Ubicación:** `api/` (FastAPI + Uvicorn)
+
+| Componente | Responsabilidad |
+|-----------|-----------------|
+| **server.py** | Inicializa FastAPI + CORS + routers |
+| **auth_manager.py** | JWT tokens (generar, validar, limpiar) |
+| **routes_auth.py** | `/auth/login`, `/auth/logout` |
+| **routes_students.py** | `/students/*` CRUD |
+| **routes_dashboard.py** | `/dashboard/` métricas |
+
+**Endpoints principales:**
+```
+POST   /auth/login              → {token, user_data, expires_at}
+POST   /auth/logout             → {message}
+GET    /students/               → [students]
+GET    /students/{id}           → student_details
+POST   /students/               → create_student
+GET    /dashboard/              → {academic_metrics, financial_metrics}
+GET    /health                  → {status, timestamp}
+```
+
+---
+
+## 6. Integraciones API REST
+
+### 6.1 Flujo de Autenticación JWT
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant FastAPI
+    participant AuthMgr as auth_manager
+    participant Storage as Session Storage
+    
+    Client ->> FastAPI: POST /auth/login<br/>{username, password}
+    FastAPI ->> AuthMgr: authenticate(username, password)
+    AuthMgr ->> AuthMgr: hash_password(password)
+    AuthMgr ->> AuthMgr: buscar usuario en BD
+    AuthMgr ->> AuthMgr: validar hash
+    alt credenciales válidas
+        AuthMgr ->> AuthMgr: crear JWT token<br/>(exp: +24h)
+        AuthMgr ->> Storage: guardar token
+        AuthMgr -->> FastAPI: {token, expires_at}
+        FastAPI -->> Client: {token, user_data, expires_at}
+    else credenciales inválidas
+        AuthMgr -->> FastAPI: error
+        FastAPI -->> Client: {error: "invalid credentials"}
+    end
+    
+    Client ->> FastAPI: GET /students/<br/>Authorization: Bearer {token}
+    FastAPI ->> AuthMgr: validar_token(token)
+    AuthMgr ->> Storage: obtener token
+    AuthMgr ->> AuthMgr: verificar expiración
+    alt token válido
+        AuthMgr -->> FastAPI: válido
+        FastAPI ->> FastAPI: ejecutar endpoint
+    else token expirado/inválido
+        AuthMgr -->> FastAPI: inválido
+        FastAPI -->> Client: {error: "unauthorized"}
+    end
+```
+
+### 6.2 Middleware CORS
+
+```python
+# api/server.py
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # 🔥 ABIERTO (cambiar en producción)
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+```
+
+---
+
+## 7. Base de Datos
+
+### 7.1 Esquema de 16 Tablas
+
+```sql
+-- Estructura Escolar (4)
+schools                 -- Información institucional
+levels                  -- Primaria, Secundaria
+grades                  -- Niveles (1ro, 2do, 3ro)
+classrooms              -- Aulas específicas
+
+-- Usuarios (2)
+users                   -- Admin, Secretaria, Profesor
+roles                   -- ADMIN, SECRETARY, TEACHER
+
+-- Académica (3)
+subjects                -- Materias
+teachers                -- Profesores
+scores                  -- Calificaciones (trimestre 1-3)
+
+-- Financiera (4)
+enrollment_prices       -- Costo por grado/año
+payments                -- Pagos realizados
+payment_calendars       -- Plan de pagos
+payment_installments    -- Cada cuota individual
+
+-- Sistema (3)
+students                -- Estudiantes (estado: activo, retirado, graduado)
+student_calendars       -- Calendario por estudiante
+alerts                  -- Alertas generadas
+```
+
+### 7.2 Ubicación Física
+
+```
+data/
+└── ges.db              ← SQLite archivo único
+                        ← 16 tablas
+                        ← Accesible: modo normal, server, client
+```
+
+---
+
+## 8. Relaciones Críticas
+
+### 8.1 Módulos Críticos (Sin estos = No funciona)
+
+| Módulo | Razón | Fallo |
+|--------|-------|-------|
+| **database/connection.py** | Gestiona BD | ❌ No hay BD |
+| **database/repository.py** | CRUD genérico | ❌ No se accede a datos |
+| **config.py** | Constantes rutas | ❌ No hay rutas |
+| **services/** | Lógica de negocio | ⚠️ Funcionalidad limitada |
+
+### 8.2 Dependencias entre Capas
+
+```
+UI ↔ Services ← Repository ← Database
+ ↑
+ └─ FastAPI (cuando modo = "server" o "client")
+```
+
+### 8.3 Cuellos de Botella Potenciales
+
+| Cuello | Impacto | Solución |
+|--------|---------|----------|
+| **SQLite monothread** | Múltiples clientes → lento | Migrar a PostgreSQL |
+| **ReportLab PDF** | Reportes grandes lentos | Caché + async |
+| **UI bloqueante** | Operaciones largas congelan | Threading |
+| **JWT sin refresh** | Usuario desconectado 24h | Agregar refresh tokens |
+| **CORS abierto** | Seguridad débil | Restricción IP |
+
+---
+
+## 9. Riesgos Arquitectónicos
+
+### 🔴 CRÍTICOS
+
+#### 1. Código Duplicado: `app/` vs Raíz
+
+**Problema:**
+```
+├── app/domain/              ← DUPLICADO, DEPRECADO
+├── app/repositories/        ← DUPLICADO, DEPRECADO
+├── app/services/            ← DUPLICADO, DEPRECADO
+├── app/ui/                  ← DUPLICADO, DEPRECADO
+
+├── services/                ← ACTUAL (correcto)
+├── database/repository.py   ← ACTUAL (correcto)
+├── ui/                      ← ACTUAL (correcto)
+```
+
+**Impacto:** Confusión en qué código usar, mantenimiento duplicado
+
+**Solución:** Eliminar `app/` completamente
+
+---
+
+#### 2. Configuración Hardcodeada
+
+**Problema:**
+```python
+# En services/academic_service.py:
+if average < 6.0:              # 🔥 Hardcodeado
+    generate_alert(...)
+
+# En services/finance_service.py:
+if days_overdue > 30:          # 🔥 Hardcodeado
+    generate_alert(...)
+```
+
+**Impacto:** Cambios requieren editar código + recompilar
+
+**Solución:** Mover a `config.json` con schema validado
+
+---
+
+### 🟡 IMPORTANTES
+
+#### 3. SHA-256 Débil para Contraseñas
+
+**Problema:**
+```python
+# En ui/login.py:
+hash = hashlib.sha256(password).hexdigest()  # 🔥 Sin salt, vulnerable
+```
+
+**Impacto:** Rainbow table attacks posibles
+
+**Solución:** Usar bcrypt
+
+---
+
+#### 4. Sin Transacciones Explícitas
+
+**Problema:**
+```python
+# Si falla aquí, datos inconsistentes:
+payment = payment_repo.create(...)      # ✅
+invoice = generate_invoice(...)         # ❌ Falla
+```
+
+**Impacto:** Matrículas sin cuotas, BD inconsistente
+
+**Solución:** Context managers para transacciones
+
+---
+
+#### 5. CORS Abierto a Todos
+
+**Problema:**
+```python
+# api/server.py:
+allow_origins=["*"]  # 🔥 Cualquiera puede acceder
+```
+
+**Impacto:** Seguridad débil
+
+**Solución:** Restricción a máquinas conocidas
+
+---
+
+### 🟢 MODERADOS
+
+#### 6. Sin Logging/Auditoría
+
+**Problema:** No hay registro de cambios
+
+**Impacto:** Imposible investigar modificaciones
+
+---
+
+#### 7. UI Bloqueante
+
+**Problema:** Operaciones largas congelan Tkinter
+
+**Impacto:** Experiencia de usuario pobre
+
+**Solución:** Threading
+
+---
+
+#### 8. Sin Validación en API
+
+**Problema:** FastAPI acepta cualquier JSON
+
+**Impacto:** Datos malformados en BD
+
+**Solución:** Pydantic schemas
+
+---
+
+## 10. Propuestas de Mejora
+
+### Fase 1: Limpieza Inmediata (1-2 horas)
+
+1. **Eliminar `app/`** - Mantener solo raíz
+2. **Consolidar config** - `config.json` con schema Pydantic
+3. **Actualizar imports** - Todos apunten a estructura correcta
+
+### Fase 2: Seguridad (2-3 horas)
+
+4. **SHA-256 → bcrypt** - Proteger contraseñas
+5. **CORS restringido** - Solo máquinas autorizadas
+6. **Validación Pydantic** - Esquemas en API
+
+### Fase 3: Robustez (3-4 horas)
+
+7. **Transacciones explícitas** - ACID garantizado
+8. **Logging centralizado** - Auditoría de cambios
+9. **Threading en UI** - Operaciones sin bloqueo
+
+### Propuesta: Arquitectura Mejorada
 
 ```mermaid
 graph TB
-    subgraph UI["🎨 PRESENTATION LAYER (CustomTkinter)"]
-        U1["LoginView"]
-        U2["MainView + Sidebar"]
-        U3["StudentsView / EnrollmentsView / PaymentsView"]
-        U4["ReportsView / SettingsView"]
+    subgraph "🎨 Presentation (Multi-modo)"
+        UI["Desktop UI<br/>(Tkinter)"]
+        API["FastAPI REST"]
     end
     
-    subgraph Service["💼 SERVICE LAYER (Lógica de Negocio)"]
-        S1["AuthService"]
-        S2["StudentService"]
-        S3["EnrollmentService"]
-        S4["PaymentService"]
-        S5["SchoolService"]
-        S6["ReportService"]
-        S7["ExportService"]
-        S8["BackupService"]
+    subgraph "🏛️ Domain"
+        DOMAIN["Domain Models<br/>(puro, sin BD)"]
+        RULES["Business Rules<br/>(validaciones)"]
     end
     
-    subgraph Repo["🗄️ REPOSITORY LAYER (Acceso a Datos)"]
-        R0["BaseRepository<br/>(Patrón genérico)"]
-        R1["StudentRepository"]
-        R2["EnrollmentRepository"]
-        R3["UserRepository"]
-        R4["GradeRepository"]
-        R5["PaymentRepository"]
+    subgraph "💼 Application"
+        SERVICES["Services<br/>(orquestación)"]
     end
     
-    subgraph DB["🗃️ DATABASE LAYER (SQLAlchemy)"]
-        D1["SQLAlchemy Session"]
-        D2["SQLAlchemy ORM"]
-        D3["Modelos:<br/>PersonModel, StudentModel<br/>EnrollmentModel, PaymentModel<br/>GradeModel, AcademicYearModel"]
-    end
-    
-    subgraph SQLite["💾 PERSISTENCE (SQLite)"]
-        DB_File["ges.db<br/>(archivo SQLite local)"]
-    end
-    
-    U1 & U2 & U3 & U4 -->|llama métodos| S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8
-    S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 -->|usa| R0 & R1 & R2 & R3 & R4 & R5
-    R0 & R1 & R2 & R3 & R4 & R5 -->|mapea operaciones| D1
-    D1 -->|usa ORM| D2
-    D2 -->|mapea modelos| D3
-    D3 -->|SQL| DB_File
-    
-    style UI fill: color: #ffffff
-    style Service fill: color: #ffffff
-    style Repo fill: color:#ffffff
-    style DB fill: color: #ffffff
-    style SQLite fill: color: #ffffff
-```
-
----
-
-### 4.4 Dependencias entre Servicios
-
-```mermaid
-graph LR
-    subgraph Core["Servicios Centrales"]
-        AuthService["AuthService<br/>(Autenticación)"]
-        SchoolService["SchoolService<br/>(Grados, Años)"]
-    end
-    
-    subgraph Main["Servicios Principales"]
-        StudentService["StudentService<br/>(Estudiantes)"]
-        EnrollmentService["EnrollmentService<br/>(Matrículas)"]
-        PaymentService["PaymentService<br/>(Pagos)"]
-    end
-    
-    subgraph Reporting["Servicios de Reportes"]
-        ReportService["ReportService<br/>(Gráficas)"]
-        AcademicHistoryService["AcademicHistoryService<br/>(Historial JSON)"]
-    end
-    
-    subgraph System["Servicios del Sistema"]
-        ExportService["ExportService<br/>(Excel)"]
-        BackupService["BackupService<br/>(Backups)"]
-        SettingsService["SettingsService<br/>(Config)"]
-        TutorService["TutorService<br/>(Tutores)"]
-    end
-    
-    AuthService -->|usa| BaseRepository["BaseRepository"]
-    SchoolService -->|usa| BaseRepository
-    StudentService -->|usa| BaseRepository
-    StudentService -->|verifica| SchoolService
-    EnrollmentService -->|usa| BaseRepository
-    EnrollmentService -->|verifica| StudentService
-    EnrollmentService -->|verifica| SchoolService
-    PaymentService -->|usa| BaseRepository
-    PaymentService -->|verifica| EnrollmentService
-    ReportService -->|usa datos de| StudentService
-    ReportService -->|usa datos de| EnrollmentService
-    ReportService -->|usa datos de| PaymentService
-    AcademicHistoryService -->|genera desde| ReportService
-    ExportService -->|exporta datos| ReportService
-    BackupService -->|respalda| BaseRepository
-    TutorService -->|usa| BaseRepository
-    
-    style BaseRepository fill:#fce4ec,stroke:#c2185b,stroke-width:3px
-    style Core fill:#e3f2fd
-    style Main fill:#e8f5e9
-    style Reporting fill:#f3e5f5
-    style System fill:#fff3e0
-```
-
----
-
-### 4.5 Estructura de Datos (Modelos)
-
-```mermaid
-erDiagram
-    PERSON ||--o{ STUDENT : "hereda"
-    PERSON ||--o{ TUTOR : "hereda"
-    PERSON ||--o{ TEACHER : "hereda"
-    PERSON ||--o{ USER : "es"
-    
-    STUDENT ||--o{ ENROLLMENT : "participa"
-    ENROLLMENT ||--o{ GRADE : "en"
-    ENROLLMENT ||--o{ ACADEMICYEAR : "durante"
-    ENROLLMENT ||--o{ PAYMENT : "genera"
-    GRADE ||--o{ ACADEMICYEAR : "pertenece"
-    GRADE ||--o{ CLASSROOM : "contiene"
-    ACADEMICYEAR ||--o{ COURSE : "ofrece"
-    STUDENT ||--o{ TUTOR : "asignado a"
-    SCHOOL ||--o{ ACADEMICYEAR : "define"
-    SCHOOL ||--o{ GRADE : "tiene"
-    
-    PERSON {
-        int id PK
-        string name
-        string last_name
-        string email
-        string phone
-        string address
-        string discriminator "polymorphic"
-    }
-    
-    STUDENT {
-        int id FK
-        string student_id UK
-        date birth_date
-        string grade
-        date enrollment_date
-    }
-    
-    USER {
-        int id FK
-        string username UK
-        string password_hash
-        string role "ADMIN, SECRETARY, TEACHER"
-        datetime last_login
-    }
-    
-    TUTOR {
-        int id FK
-        string profession
-        string relationship
-    }
-    
-    TEACHER {
-        int id FK
-        string employee_id UK
-        string specialization
-        date hire_date
-    }
-    
-    ENROLLMENT {
-        int id PK
-        int student_id FK
-        int grade_id FK
-        int academic_year_id FK
-        string status "active, inactive, graduated"
-        string enrollment_number UK
-        date enrollment_date
-    }
-    
-    PAYMENT {
-        int id PK
-        int enrollment_id FK
-        float amount
-        date due_date
-        date payment_date
-        string status "pending, paid, overdue"
-        string payment_method
-    }
-    
-    GRADE {
-        int id PK
-        string name
-        string level "primary, secondary"
-        int capacity
-        float tuition_fee
-    }
-    
-    ACADEMICYEAR {
-        int id PK
-        string year "2024-2025"
-        boolean is_active
-        float tuition_fee
-    }
-    
-    SCHOOL {
-        int id PK
-        string code
-        string name
-        float tuition_fee
-    }
-    
-    CLASSROOM {
-        int id PK
-        string number
-        int capacity
-        boolean has_projector
-        boolean has_computers
-    }
-    
-    COURSE {
-        int id PK
-        string name
-        int credits
-        boolean is_mandatory
-    }
-```
-
----
-
-## 5. Relaciones Importantes
-
-### 5.1 Dependencias Críticas
-
-| Módulo | Depende De | Criticidad | Razón |
-|--------|-----------|-----------|-------|
-| **EnrollmentService** | StudentRepository, GradeRepository, AcademicYearRepository | 🔴 CRÍTICA | Valida todas las reglas de matrícula |
-| **PaymentService** | EnrollmentRepository | 🔴 CRÍTICA | Sin matrículas no hay pagos |
-| **ReportService** | StudentRepository, EnrollmentRepository, PaymentRepository | 🔴 CRÍTICA | Genera análisis del sistema |
-| **AuthService** | UserRepository | 🔴 CRÍTICA | Controla acceso a la aplicación |
-| **MainApplication** | AuthService | 🔴 CRÍTICA | Punto de entrada, requiere autenticación |
-| **SchoolService** | GradeRepository, AcademicYearRepository | 🟡 IMPORTANTE | Datos maestros del sistema |
-| **StudentService** | StudentRepository, TutorRepository | 🟡 IMPORTANTE | CRUD de estudiantes |
-| **BackupService** | Todas las tablas | 🟡 IMPORTANTE | Respalda todos los datos |
-| **ExportService** | ReportService | 🟢 SECUNDARIA | Opcional, genera reportes Excel |
-
-### 5.2 Módulos Críticos
-
-```
-Módulos que si fallan, la aplicación NO funciona:
-
-1. database/db.py              → Gestión de sesiones y conexión
-2. AuthService                 → No se puede usar la aplicación
-3. BaseRepository              → No se puede acceder a datos
-4. database/models/*           → Mapeo a la BD
-5. MainApplication             → Punto de entrada principal
-```
-
-### 5.3 Módulos Reutilizados
-
-| Módulo | Usado Por | Veces |
-|--------|----------|-------|
-| **BaseRepository** | Todos los repositorios específicos | 7x |
-| **SQLAlchemy Session** | Todos los repositorios | 7x+ |
-| **database.db** | Todos los servicios | 11x+ |
-| **PersonModel** | StudentModel, TutorModel, TeacherModel, UserModel | 4x |
-
-### 5.4 Posibles Cuellos de Botella
-
-1. **SQLite Local:** A medida que crece la base de datos (miles de registros), las queries pueden volverse lentas
-   - **Impacto:** ReportService y búsquedas en Students
-   - **Solución:** Indexar campos críticos, migrar a PostgreSQL si escala
-
-2. **Generación de Reportes (Matplotlib):** Puede ser lenta con muchos datos
-   - **Impacto:** ReportService.generate_charts()
-   - **Solución:** Caché de reportes, generación asíncrona
-
-3. **UI Responsiva:** CustomTkinter puede quedar bloqueada durante operaciones largas
-   - **Impacto:** Backup, Export, Reportes
-   - **Solución:** Threading para operaciones largas
-
-4. **Concurrencia:** SQLite no soporta escritura concurrente
-   - **Impacto:** Si múltiples usuarios acceden simultáneamente
-   - **Solución:** Migrar a PostgreSQL, agregar control de concurrencia
-
----
-
-## 6. Riesgos Arquitectónicos
-
-### 6.1 Problemas Detectados
-
-#### 🔴 CRÍTICO
-
-**1. Código Duplicado entre `app/` y raíz**
-
-```
-Existe en DOS ubicaciones:
-├── app/domain/entities.py        ← Nueva estructura (correcta)
-├── domain/entities.py            ← Estructura legada (DUPLICADA)
-
-├── app/repositories/             ← Repositorios nuevos (correcta)
-├── repositories/                 ← Repositorios legados (DUPLICADA)
-
-├── app/services/                 ← Servicios nuevos (correcta)
-├── services/                     ← Servicios legados (DUPLICADA)
-
-├── app/ui/                       ← UI nueva (correcta)
-├── ui/                           ← UI legada (DUPLICADA)
-```
-
-**Impacto:** 
-- Confusión sobre qué código usar
-- Actualizaciones en un lugar no se replican
-- Mantenimiento duplicado
-
-**Severidad:** 🔴 CRÍTICA
-
----
-
-#### 🔴 CRÍTICO
-
-**2. Mezcla de Modelos de Dominio**
-
-`app/domain/entities.py` es ignorado en favor de modelos SQLAlchemy directos.
-
-```python
-# app/domain/entities.py (DEFINIDO pero NO USADO)
-class Student:
-    pass
-
-# Pero en services se usa:
-from database.models.person import StudentModel  # Modelo de BD, no dominio puro
-```
-
-**Impacto:**
-- Violación de principios de arquitectura
-- Modelos SQLAlchemy mezclados con lógica de negocio
-- Difícil de testear
-
-**Severidad:** 🔴 CRÍTICA
-
----
-
-#### 🟡 IMPORTANTE
-
-**3. Falta de Validaciones en Repositorios**
-
-Las reglas de negocio están en Servicios, pero es fácil crear registros inválidos accediendo directamente a repositorios.
-
-```python
-# ❌ Esto debería ser bloqueado pero no lo está:
-enrollment_repo.create(EnrollmentModel(
-    student_id=999,  # Estudiante inexistente
-    grade_id=999,    # Grado inexistente
-))
-```
-
-**Impacto:**
-- Datos inconsistentes si se ataca la API
-- Base de datos con registros huérfanos
-
-**Severidad:** 🟡 IMPORTANTE
-
----
-
-#### 🟡 IMPORTANTE
-
-**4. Sin Transacciones Explícitas**
-
-Las operaciones complejas no usan transacciones. Si algo falla a mitad, la BD queda en estado inconsistente.
-
-```python
-# ❌ Si falla después del create, los pagos no se crean:
-def enroll_student(...):
-    enrollment = enrollment_repo.create(enrollment_model)  # ✅
-    payment_service.create_payment_schedule(enrollment.id)  # ❌ Si falla aquí...
-```
-
-**Impacto:**
-- Matrículas sin cuotas asociadas
-- Datos incompletos en la BD
-
-**Severidad:** 🟡 IMPORTANTE
-
----
-
-#### 🟡 IMPORTANTE
-
-**5. Sin Control de Concurrencia**
-
-SQLite bloquea escrituras. Múltiples usuarios pueden ver datos obsoletos.
-
-```python
-# Usuario A lee: enrollment.status = 'pending'
-# Usuario B actualiza: enrollment.status = 'paid'
-# Usuario A guardó datos basado en estado obsoleto
-```
-
-**Impacto:**
-- Corrupción de datos bajo concurrencia
-- Sobrescrituras de cambios recientes
-
-**Severidad:** 🟡 IMPORTANTE
-
----
-
-#### 🟢 MODERADO
-
-**6. UI Bloqueante**
-
-Operaciones largas (reportes, backups) congelan la interfaz.
-
-```python
-# ❌ La UI se congela mientras se genera el reporte:
-def generate_report(self):
-    data = report_service.generate_charts()  # 10 segundos...
-    # UI no responde
-```
-
-**Impacto:**
-- Mala experiencia de usuario
-- Usuario piensa que aplicación se colgó
-
-**Severidad:** 🟢 MODERADO
-
----
-
-#### 🟢 MODERADO
-
-**7. Configuración Hardcodeada**
-
-Capacidades, cuotas y parámetros en código, no en configuración.
-
-```python
-# ❌ En EnrollmentService:
-if len(enrollments) >= 30:  # 🔥 Capacidad hardcodeada
-
-# ✅ Debería venir de:
-if len(enrollments) >= grade.capacity  # Bien
-```
-
-**Impacto:**
-- Cambiar parámetros requiere editar código
-- Diferente para cada escuela no escalable
-
-**Severidad:** 🟢 MODERADO
-
----
-
-#### 🟢 MODERADO
-
-**8. Sin Logging ni Auditoría**
-
-No hay registro de quién cambió qué y cuándo.
-
-```python
-# ❌ Cambios sin auditoría:
-student.status = 'inactive'
-session.commit()  # ¿Quién lo hizo? ¿Cuándo? ¿Por qué?
-```
-
-**Impacto:**
-- Imposible investigar cambios incorrectos
-- Cumplimiento regulatorio débil
-
-**Severidad:** 🟢 MODERADO
-
----
-
-#### 🟢 MODERADO
-
-**9. Gestor de Dependencias Débil**
-
-Servicios crean sus propias instancias de repositorios. No hay inyección real.
-
-```python
-class EnrollmentService:
-    def __init__(self):
-        self.enrollment_repo = EnrollmentRepository()  # Creada aquí
-        self.student_repo = StudentRepository()
-```
-
-**Impacto:**
-- Difícil de mockear para tests
-- Acoplamiento fuerte
-
-**Severidad:** 🟢 MODERADO
-
----
-
-### 6.2 Resumen de Riesgos
-
-| Riesgo | Severidad | Estado |
-|--------|-----------|--------|
-| Código duplicado (app/ vs raíz) | 🔴 CRÍTICA | Activo |
-| Modelos de dominio ignorados | 🔴 CRÍTICA | Activo |
-| Falta de validaciones en Repos | 🟡 IMPORTANTE | Activo |
-| Sin transacciones explícitas | 🟡 IMPORTANTE | Activo |
-| Sin control de concurrencia | 🟡 IMPORTANTE | Potencial |
-| UI bloqueante en ops largas | 🟢 MODERADO | Activo |
-| Configuración hardcodeada | 🟢 MODERADO | Activo |
-| Sin logging/auditoría | 🟢 MODERADO | Activo |
-| Inyección débil de dependencias | 🟢 MODERADO | Activo |
-
----
-
-## 7. Propuestas de Mejora
-
-### 7.1 Plan de Refactorización Recomendado
-
-#### **Fase 1: Limpieza de Código (URGENTE)**
-
-**1. Eliminar Duplicación**
-
-```
-├── app/
-│   ├── domain/entities.py         ← Mantener y usar
-│   ├── repositories/              ← Mantener y usar
-│   ├── services/                  ← Mantener y usar
-│   └── ui/                        ← Mantener y usar
-│
-├── domain/                        ← ELIMINAR
-├── repositories/                  ← ELIMINAR
-├── services/                      ← ELIMINAR
-├── ui/                            ← ELIMINAR
-└── controllers/                   ← ELIMINAR o CONSOLIDAR
-```
-
-**Acciones:**
-- ✅ Mover todo a `app/`
-- ✅ Actualizar imports en main.py
-- ✅ Eliminar duplicados
-- ✅ Tests de smoke para verificar
-
-**Tiempo:** 2-3 horas
-
----
-
-**2. Usar Entidades de Dominio**
-
-```python
-# ❌ Actual (SQLAlchemy Model)
-from database.models.person import StudentModel
-
-# ✅ Futuro (Entidad de Dominio)
-from app.domain.entities import Student
-from app.repositories.student_repository import StudentRepository
-
-# En servicio:
-class StudentService:
-    def create_student(self, student_data: dict) -> Student:
-        # Valida con entidad de dominio
-        student = Student(**student_data)
-        # Guarda usando repositorio
-        return self.student_repo.create(student)
-```
-
-**Impacto:** Arquitectura más limpia, fácil testing
-
-**Tiempo:** 4-6 horas
-
----
-
-#### **Fase 2: Robustez (IMPORTANTE)**
-
-**3. Agregar Transacciones Explícitas**
-
-```python
-# Antes: ❌
-def enroll_student(self, student_id, grade_id, academic_year_id):
-    enrollment = enrollment_repo.create(...)
-    payment_service.create_schedule(enrollment.id)
-
-# Después: ✅
-from sqlalchemy import begin_nested
-
-def enroll_student(self, student_id, grade_id, academic_year_id):
-    with db.session.begin_nested():
-        try:
-            enrollment = enrollment_repo.create(...)
-            payment_service.create_schedule(enrollment.id)
-            return enrollment
-        except Exception as e:
-            # Rollback automático
-            raise EnrollmentError(f"Fallo la matrícula: {e}")
-```
-
-**Impacto:** Datos consistentes
-
-**Tiempo:** 3-4 horas
-
----
-
-**4. Agregar Validaciones en Repositorios**
-
-```python
-# Antes: ❌
-class BaseRepository:
-    def create(self, model):
-        session.add(model)
-        session.commit()
-
-# Después: ✅
-class BaseRepository:
-    def create(self, model):
-        self._validate(model)  # Validar antes
-        session.add(model)
-        session.commit()
-        
-    def _validate(self, model):
-        # Validar restricciones de integridad
-        pass
-```
-
-**Impacto:** Imposible crear datos inválidos
-
-**Tiempo:** 2-3 horas
-
----
-
-**5. Agregar Logging y Auditoría**
-
-```python
-import logging
-
-class AuditService:
-    @staticmethod
-    def log_change(user_id, entity, action, old_value, new_value):
-        logging.info(f"Usuario {user_id} {action} {entity}: {old_value} → {new_value}")
-
-# En servicios:
-def update_student(self, student_id, data):
-    old_student = student_repo.get_by_id(student_id)
-    new_student = student_repo.update(student_id, data)
-    AuditService.log_change(self.user_id, "Student", "UPDATE", old_student, new_student)
-```
-
-**Impacto:** Auditoría completa de cambios
-
-**Tiempo:** 2-3 horas
-
----
-
-#### **Fase 3: Escalabilidad (FUTURA)**
-
-**6. Threading para Operaciones Largas**
-
-```python
-import threading
-import queue
-
-class ReportService:
-    def __init__(self):
-        self.report_queue = queue.Queue()
-    
-    def generate_charts_async(self, on_complete):
-        def worker():
-            charts = self._generate_charts_internal()
-            on_complete(charts)
-        
-        thread = threading.Thread(target=worker, daemon=True)
-        thread.start()
-
-# En UI:
-def on_generate_reports(self):
-    report_service.generate_charts_async(
-        on_complete=self.display_charts
-    )
-```
-
-**Impacto:** UI responsiva
-
-**Tiempo:** 3-4 horas
-
----
-
-**7. Inyección de Dependencias**
-
-```python
-# Antes: ❌
-class StudentService:
-    def __init__(self):
-        self.repo = StudentRepository()
-
-# Después: ✅ (con patrón simple, sin framework)
-class StudentService:
-    def __init__(self, student_repo: StudentRepository):
-        self.repo = student_repo
-
-# En main:
-student_repo = StudentRepository()
-student_service = StudentService(student_repo)
-```
-
-**Impacto:** Fácil testing, desacoplamiento
-
-**Tiempo:** 2-3 horas
-
----
-
-### 7.2 Arquitectura Mejorada Propuesta
-
-```mermaid
-graph TB
-    subgraph "👤 Presentation Layer (CustomTkinter)"
-        A["UI Components<br/>(Views, Forms)"]
-        A -->|inyecta| B["ViewModel Layer<br/>(no existe aún)"]
-    end
-    
-    subgraph "💼 Application Layer"
-        B -->|usa| C["Service Layer<br/>(Lógica de Negocio)"]
-    end
-    
-    subgraph "🏛️ Domain Layer"
-        D["Entidades de Dominio<br/>(Student, Enrollment, etc)"]
-        E["Business Rules<br/>(Validaciones)"]
-        D & E -.->|puras, sin BD| C
-    end
-    
-    subgraph "🗄️ Data Layer"
-        F["Repository Layer<br/>(Abstracción)"]
-        G["SQLAlchemy ORM<br/>(con transacciones)"]
-        H["Unit of Work Pattern<br/>(manage sessions)"]
+    subgraph "🗄️ Data Access"
+        REPO["Repository<br/>(transacciones)"]
+        MODELS["SQLAlchemy Models"]
     end
     
     subgraph "⚙️ Infrastructure"
-        I["Logging & Audit"]
-        J["Configuration"]
-        K["Exceptions"]
+        CONFIG["Config<br/>(JSON + Pydantic)"]
+        LOG["Logger<br/>(centralizado)"]
+        AUDIT["Audit<br/>(cambios)"]
+        SECURITY["Security<br/>(bcrypt + CORS)"]
     end
     
     subgraph "💾 Persistence"
-        L["SQLite | PostgreSQL<br/>(flexible)"]
+        DB["SQLite | PostgreSQL"]
     end
     
-    C -->|usa| F
-    F -->|mapea| G
-    G -->|usa| H
-    H -->|usa| L
-    C & F & G -->|usa| I
-    C -->|consulta| J
-    C -->|lanza| K
+    UI & API -->|usa| SERVICES
+    SERVICES -->|crea| DOMAIN
+    SERVICES -->|valida| RULES
+    SERVICES -->|usa| REPO
+    REPO -->|usa| MODELS
+    MODELS -->|persiste| DB
+    SERVICES & REPO -->|usa| CONFIG & LOG & AUDIT & SECURITY
     
-    style A fill: #000000, color: #ffffff
-    style B fill: color: #ffffff
-    style C fill: color: #ffffff
-    style D fill: color: #ffffff
-    style E fill: color: #ffffff
-    style F fill: color: #ffffff
-    style G fill: color: #ffffff
-    style H fill: color: #ffffff
-    style I fill: color: #ffffff
-    style J fill: color: #ffffff
-    style K fill: color: #ffffff
-    style L fill: color: #ffffff
-```
-
----
-
-### 7.3 Nuevo Diagrama: Vista de Componentes Mejorada
-
-```mermaid
-graph TB
-    subgraph "UI (Presentation)"
-        UI1["LoginView"]
-        UI2["MainView"]
-        UI3["Components"]
-    end
-    
-    subgraph "ViewModel (New)"
-        VM1["StudentViewModel"]
-        VM2["EnrollmentViewModel"]
-        VM3["ReportViewModel"]
-    end
-    
-    subgraph "Services (Application)"
-        S1["StudentService"]
-        S2["EnrollmentService"]
-        S3["PaymentService"]
-        S4["ReportService"]
-    end
-    
-    subgraph "Repositories (Data Access)"
-        R1["StudentRepository"]
-        R2["EnrollmentRepository"]
-        R3["PaymentRepository"]
-    end
-    
-    subgraph "Domain (Business Logic)"
-        D1["Student Entity"]
-        D2["Enrollment Entity"]
-        D3["Payment Entity"]
-        D4["Validation Rules"]
-    end
-    
-    subgraph "Infrastructure"
-        DB["Database<br/>(SQLite/PostgreSQL)"]
-        LOG["Logging Service"]
-        CONFIG["Config Service"]
-        AUDIT["Audit Service"]
-    end
-    
-    UI1 & UI2 & UI3 -->|usa| VM1 & VM2 & VM3
-    VM1 & VM2 & VM3 -->|invoca| S1 & S2 & S3 & S4
-    S1 & S2 & S3 & S4 -->|crea/valida| D1 & D2 & D3 & D4
-    S1 & S2 & S3 & S4 -->|usa| R1 & R2 & R3
-    R1 & R2 & R3 -->|persiste| D1 & D2 & D3
-    R1 & R2 & R3 -->|accede| DB
-    S1 & S2 & S3 & S4 -->|registra| LOG & AUDIT
-    S1 & S2 & S3 & S4 -->|consulta| CONFIG
-    
-    style UI1 fill:#fff3e0
-    style UI2 fill:#fff3e0
-    style UI3 fill:#fff3e0
-    style VM1 fill:#fff9c4
-    style VM2 fill:#fff9c4
-    style VM3 fill:#fff9c4
-    style S1 fill:#e8f5e9
-    style S2 fill:#e8f5e9
-    style S3 fill:#e8f5e9
-    style S4 fill:#e8f5e9
-    style D1 fill:#e3f2fd
-    style D2 fill:#e3f2fd
-    style D3 fill:#e3f2fd
-    style D4 fill:#e3f2fd
-    style R1 fill:#fce4ec
-    style R2 fill:#fce4ec
-    style R3 fill:#fce4ec
+    style UI fill:#fff3e0
+    style API fill:#c8e6c9
+    style SERVICES fill:#e8f5e9
+    style REPO fill:#fce4ec
     style DB fill:#ffccbc
+    style CONFIG fill:#f3e5f5
     style LOG fill:#f3e5f5
     style AUDIT fill:#f3e5f5
-    style CONFIG fill:#f3e5f5
+    style SECURITY fill:#f3e5f5
 ```
 
 ---
 
-## 8. Checklist de Implementación
+## 📊 Conclusiones
 
-### Corto Plazo (1-2 semanas)
+### ✅ Fortalezas Actuales
 
-- [ ] Eliminar código duplicado entre `app/` y raíz
-- [ ] Actualizar todos los imports en `main.py` y archivos de prueba
-- [ ] Agregar transacciones explícitas en operaciones complejas
-- [ ] Agregar logging básico en servicios
-- [ ] Tests de humo (smoke tests) para verificar que nada rompió
+1. **Arquitectura Híbrida Única:** 3 modos sin código duplicado
+2. **Separación Clara de Capas:** UI → Services → Repository → DB
+3. **Reutilización Máxima:** Mismo código para Desktop + API + Client
+4. **Core Engine Puro:** Lógica sin dependencias externas
+5. **API REST Funcional:** FastAPI lista para múltiples clientes
+6. **Configuración Flexible:** Modo configurable en runtime
 
-### Mediano Plazo (2-4 semanas)
+### ⚠️ Mejoras Prioritarias
 
-- [ ] Implementar validaciones en repositorios
-- [ ] Agregar auditoría de cambios
-- [ ] Usar entidades de dominio en lugar de modelos SQLAlchemy directos
-- [ ] Agregar threading para operaciones largas
-- [ ] Tests unitarios para servicios críticos
+| Prioridad | Item | Tiempo | Beneficio |
+|-----------|------|--------|-----------|
+| 🔴 Alta | Eliminar `app/` | 30min | Claridad |
+| 🔴 Alta | SHA-256 → bcrypt | 1h | Seguridad |
+| 🟡 Media | CORS restringido | 30min | Seguridad |
+| 🟡 Media | Pydantic schemas | 1.5h | Robustez |
+| 🟡 Media | Transacciones | 2h | Consistencia |
+| 🟢 Baja | Threading | 2h | UX |
+| 🟢 Baja | Logging | 1h | Auditoría |
 
-### Largo Plazo (1-2 meses)
+### 🎯 Recomendación
 
-- [ ] Inyección de dependencias formal
-- [ ] Agregar capa ViewModel
-- [ ] Considerar migración a PostgreSQL si escala
-- [ ] Agregar API REST (si necesita múltiples clientes)
-- [ ] Tests de integración completos
+**La arquitectura es SÓLIDA y ESCALABLE.** El proyecto ha evolucionado correctamente hacia una estructura híbrida bien pensada.
 
----
+**Acciones inmediatas (3 horas):**
+1. Eliminar `app/` ✅
+2. Agregar bcrypt ✅
+3. Pydantic schemas ✅
 
-## 9. Conclusiones
-
-### ✅ Fortalezas de la Arquitectura Actual
-
-1. **Separación clara de capas:** UI → Services → Repositories → Database
-2. **Patrón Repository bien implementado:** Abstracción del acceso a datos
-3. **Escalable para dominio educativo:** Modelos bien pensados (Student, Enrollment, Payment, etc)
-4. **Offline-first desde el inicio:** SQLite local, no depende de internet
-5. **Código legible y organizado:** Estructura clara, nombrado adecuadamente
-6. **Reglas de negocio en servicios:** No mezcladas con acceso a datos
-
-### ⚠️ Puntos de Mejora Prioritarios
-
-1. **Eliminar duplicación de código** (app/ vs raíz)
-2. **Usar entidades de dominio puro**
-3. **Agregar transacciones explícitas**
-4. **Agregar validaciones en repositorios**
-5. **Mejorar robustez de la UI** (threading)
-
-### 🎯 Recomendación Final
-
-**GES tiene una arquitectura SÓLIDA y bien pensada para un sistema de escritorio educativo offline.** Los problemas detectados son **técnicamente manejables** y **no son estructurales.**
-
-Con las mejoras propuestas en Corto Plazo (1-2 semanas), el sistema será **production-ready** y fácil de mantener.
+Con esto, estará **production-ready**.
 
 ---
 
-**Documento generado:** Mayo 2026  
-**Versión:** 1.0  
-**Estado:** Análisis Completo
+**Documento:** Mayo 2026  
+**Versión:** 2.0 (Actualizado - Arquitectura Híbrida)  
+**Estado:** ✅ Análisis Completo
