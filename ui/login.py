@@ -5,10 +5,11 @@ Diseño profesional e institucional
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from typing import Callable, Dict, Any, Optional
+from typing import Callable, Dict, Any
+from PIL import Image, ImageTk  # type: ignore[import]
+import os
 
 from database.repository import user_repo
-from database.models import DatabaseModels
 from utils.helpers import hash_password
 
 
@@ -34,7 +35,7 @@ class LoginWindow:
     def setup_window(self):
         """Configura la ventana principal"""
         self.parent.title("GES - Sistema de Gestión Escolar")
-        self.parent.geometry("400x500")
+        self.parent.geometry("1236x724")
         self.parent.resizable(False, False)
         
         # Centrar ventana
@@ -43,7 +44,10 @@ class LoginWindow:
         # Configurar estilo profesional
         self.setup_styles()
         
-        # Color de fondo institucional
+        # Cargar imagen de fondo
+        self.load_background_image()
+        
+        # Color de fondo institucional (fallback)
         self.parent.configure(bg='#f0f4f8')
     
     def center_window(self):
@@ -78,11 +82,30 @@ class LoginWindow:
                      relief='flat',
                      borderwidth=1)
     
+    def load_background_image(self):
+        """Carga la imagen de fondo"""
+        try:
+            # Path relativo desde el directorio del proyecto
+            image_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'img', 'poratada_login.png')
+            self.bg_image = Image.open(image_path)
+            
+            # Redimensionar imagen a las dimensiones de la ventana
+            # 1236x724 son las dimensiones de la ventana
+            self.bg_image = self.bg_image.resize((1236, 724), Image.Resampling.LANCZOS)
+            self.bg_photo = ImageTk.PhotoImage(self.bg_image)
+            
+            # Crear label de fondo
+            self.bg_label = tk.Label(self.parent, image=self.bg_photo)
+            self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+            self.bg_label.lower()  # Enviar al fondo
+        except Exception as e:
+            print(f"Error cargando imagen de fondo: {e}")
+            # Fallback a color sólido
+            self.bg_label = None
+            self.parent.configure(bg='#f0f4f8')
+    
     def create_widgets(self):
         """Crea todos los widgets de la interfaz"""
-        
-        # Header con título
-        self.create_header()
         
         # Tarjeta principal de login
         self.create_login_card()
@@ -90,37 +113,11 @@ class LoginWindow:
         # Footer
         self.create_footer()
     
-    def create_header(self):
-        """Crea el header con logo y título"""
-        header_frame = tk.Frame(self.parent, bg='#f0f4f8', height=100)
-        header_frame.pack(fill='x', pady=(0, 20))
-        header_frame.pack_propagate(False)
-        
-        # Título principal
-        title_label = tk.Label(
-            header_frame,
-            text="GES",
-            font=('Segoe UI', 32, 'bold'),
-            fg='#2c3e50',
-            bg='#f0f4f8'
-        )
-        title_label.pack(pady=(20, 5))
-        
-        # Subtítulo
-        subtitle_label = tk.Label(
-            header_frame,
-            text="Sistema de Gestión Escolar",
-            font=('Segoe UI', 12),
-            fg='#7f8c8d',
-            bg='#f0f4f8'
-        )
-        subtitle_label.pack()
-    
     def create_login_card(self):
         """Crea la tarjeta principal de login"""
-        # Frame principal (tarjeta)
+        # Frame principal (tarjeta) - centrado
         card_frame = tk.Frame(self.parent, bg='white', relief='solid', borderwidth=1)
-        card_frame.pack(pady=20, padx=40, fill='both', expand=True)
+        card_frame.place(relx=0.5, rely=0.5, anchor='center', width=400, height=350)
         
         # Espaciado interno
         inner_frame = tk.Frame(card_frame, bg='white')
@@ -330,27 +327,3 @@ class LoginWindow:
                 user_repo.create(admin_data)
         except Exception as e:
             print(f"⚠️ Error creando usuario admin por defecto: {e}")
-
-
-# Función para inicializar usuarios por defecto
-def initialize_default_users():
-    """Inicializa usuarios por defecto del sistema"""
-    try:
-        # Verificar si existe el usuario admin
-        admin_user = user_repo.get_by_username('admin')
-        if not admin_user:
-            # Crear usuario admin por defecto
-            admin_data = {
-                'username': 'admin',
-                'password_hash': hashlib.sha256('admin123'.encode()).hexdigest(),
-                'role_id': 1,  # Rol de Directiva
-                'is_active': True
-            }
-            user_repo.create(admin_data)
-            print("✅ Usuario admin creado por defecto")
-    except Exception as e:
-        print(f"⚠️ Error creando usuario admin: {e}")
-
-
-# La función initialize_default_users() está disponible pero no se ejecuta automáticamente
-# Se debe llamar explícitamente cuando se necesite

@@ -207,8 +207,13 @@ def main():
         app = GESApplication()
         app.run()
     except Exception as e:
-        messagebox.showerror("Error Crítico", 
-                          f"Error al iniciar GES:\n{str(e)}")
+        import traceback
+        error_msg = f"Error al iniciar GES:\n{str(e)}\n\nTraceback:\n{traceback.format_exc()}"
+        print(error_msg)  # Para debug en terminal
+        try:
+            messagebox.showerror("Error Crítico", error_msg)
+        except:
+            print("No se pudo mostrar messagebox, error en Tkinter")
         sys.exit(1)
 
 
