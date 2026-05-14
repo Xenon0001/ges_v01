@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from services.student_service import StudentService
+from ui.student_import.student_import_view import StudentImportView
 from database.repository import classroom_repo
 
 
@@ -89,6 +90,7 @@ class StudentsView:
         
         # Botones de acción
         self.create_toolbar_button(left_frame, "➕ Nuevo Estudiante", self.create_student, '#27ae60')
+        self.create_toolbar_button(left_frame, "📥 Importar Estudiantes", self.open_student_import_view, '#8e44ad')
         self.create_toolbar_button(left_frame, "✏️ Editar", self.edit_student, '#3498db')
         self.create_toolbar_button(left_frame, "🗑️ Eliminar", self.delete_student, '#e74c3c')
         
@@ -161,6 +163,10 @@ class StudentsView:
         btn.bind('<Leave>', lambda e: btn.configure(bg=color))
         
         return btn
+    
+    def open_student_import_view(self):
+        """Abre la ventana de importación de estudiantes."""
+        StudentImportView(self.parent, self.config, on_import_complete=lambda result: self.load_students()).show()
     
     def create_students_table(self, parent):
         """Crea la tabla de estudiantes"""

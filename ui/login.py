@@ -16,9 +16,10 @@ from utils.helpers import hash_password
 class LoginWindow:
     """Ventana de login profesional"""
     
-    def __init__(self, parent: tk.Tk, on_success: Callable[[Dict[str, Any], str], None]):
+    def __init__(self, parent: tk.Tk, on_success: Callable[[Dict[str, Any], str], None], on_show_registration: Callable[[], None] = None):
         self.parent = parent
         self.on_success = on_success
+        self.on_show_registration = on_show_registration
         
         # Configurar ventana principal
         self.setup_window()
@@ -144,6 +145,9 @@ class LoginWindow:
         
         # Mensaje de ayuda
         self.create_help_message(inner_frame)
+        
+        # Enlace de registro
+        self.create_registration_link(inner_frame)
     
     def create_username_field(self, parent):
         """Crea el campo de usuario"""
@@ -228,6 +232,29 @@ class LoginWindow:
             bg='white'
         )
         help_label.pack()
+    
+    def create_registration_link(self, parent):
+        """Crea el enlace para ir a registro"""
+        if self.on_show_registration:
+            link_frame = tk.Frame(parent, bg='white')
+            link_frame.pack(fill='x', pady=(15, 0))
+            
+            link_label = tk.Label(
+                link_frame,
+                text="¿No tienes cuenta? Regístrate aquí",
+                font=('Segoe UI', 9),
+                fg='#3498db',
+                bg='white',
+                cursor='hand2'
+            )
+            link_label.pack()
+            
+            # Bind click event
+            link_label.bind('<Button-1>', lambda e: self.on_show_registration())
+            
+            # Efecto hover
+            link_label.bind('<Enter>', lambda e: link_label.configure(fg='#2980b9'))
+            link_label.bind('<Leave>', lambda e: link_label.configure(fg='#3498db'))
     
     def create_footer(self):
         """Crea el footer de la ventana"""
@@ -327,3 +354,419 @@ class LoginWindow:
                 user_repo.create(admin_data)
         except Exception as e:
             print(f"⚠️ Error creando usuario admin por defecto: {e}")
+
+
+class RegistrationWindow:
+    """Ventana de registro profesional - diseño con dos columnas"""
+    
+    def __init__(self, parent: tk.Tk, on_success: Callable[[Dict[str, Any]], None], on_show_login: Callable[[], None] = None):
+        self.parent = parent
+        self.on_success = on_success
+        self.on_show_login = on_show_login
+        
+        # Configurar ventana principal
+        self.setup_window()
+        
+        # Crear UI
+        self.create_widgets()
+        
+        # Enfocar username
+        self.username_entry.focus()
+        
+        # Bind Enter key
+        self.parent.bind('<Return>', lambda e: self.register())
+    
+    def setup_window(self):
+        """Configura la ventana principal"""
+        self.parent.title("GES - Registro - Sistema de Gestión Escolar")
+        self.parent.geometry("1236x724")
+        self.parent.resizable(False, False)
+        
+        # Centrar ventana
+        self.center_window()
+        
+        # Configurar estilo profesional
+        self.setup_styles()
+        
+        # Cargar imagen de fondo
+        self.load_background_image()
+        
+        # Color de fondo institucional (fallback)
+        self.parent.configure(bg='#f0f4f8')
+    
+    def center_window(self):
+        """Centra la ventana en la pantalla"""
+        self.parent.update_idletasks()
+        width = self.parent.winfo_width()
+        height = self.parent.winfo_height()
+        x = (self.parent.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.parent.winfo_screenheight() // 2) - (height // 2)
+        self.parent.geometry(f'{width}x{height}+{x}+{y}')
+    
+    def setup_styles(self):
+        """Configura estilos profesionales"""
+        style = ttk.Style()
+        
+        # Configurar tema
+        style.theme_use('clam')
+        
+        # Estilo para botones principales
+        style.configure('Primary.TButton',
+                     background='#2c3e50',
+                     foreground='white',
+                     borderwidth=0,
+                     focuscolor='none',
+                     font=('Segoe UI', 11, 'bold'))
+        style.map('Primary.TButton',
+                 background=[('active', '#34495e')])
+        
+        # Estilo para frames
+        style.configure('Card.TFrame',
+                     background='white',
+                     relief='flat',
+                     borderwidth=1)
+    
+    def load_background_image(self):
+        """Carga la imagen de fondo"""
+        try:
+            # Path relativo desde el directorio del proyecto
+            image_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'img', 'portada_sigin.png')
+            self.bg_image = Image.open(image_path)
+            
+            # Redimensionar imagen a las dimensiones de la ventana
+            self.bg_image = self.bg_image.resize((1236, 724), Image.Resampling.LANCZOS)
+            self.bg_photo = ImageTk.PhotoImage(self.bg_image)
+            
+            # Crear label de fondo
+            self.bg_label = tk.Label(self.parent, image=self.bg_photo)
+            self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+            self.bg_label.lower()  # Enviar al fondo
+        except Exception as e:
+            print(f"Error cargando imagen de fondo: {e}")
+            # Fallback a color sólido
+            self.bg_label = None
+            self.parent.configure(bg='#f0f4f8')
+    
+    def create_widgets(self):
+        """Crea todos los widgets de la interfaz"""
+        
+        # Crear layout de dos columnas
+        self.create_two_column_layout()
+        
+        # Footer
+        self.create_footer()
+    
+    def create_two_column_layout(self):
+        """Crea el layout principal con dos columnas"""
+        # Frame principal que contiene las dos columnas
+        main_frame = tk.Frame(self.parent, bg='rgba(0,0,0,0)')
+        main_frame.place(relx=0.5, rely=0.5, anchor='center', width=1000, height=600)
+        
+        # Columna izquierda - Texto de bienvenida
+        self.create_welcome_column(main_frame)
+        
+        # Columna derecha - Formulario de registro
+        self.create_registration_form_column(main_frame)
+    
+    def create_welcome_column(self, parent):
+        """Crea la columna izquierda con texto de bienvenida"""
+        welcome_frame = tk.Frame(parent, bg='rgba(0,0,0,0)')
+        welcome_frame.pack(side='left', fill='both', expand=True, padx=40, pady=40)
+        
+        # Título principal
+        title_label = tk.Label(
+            welcome_frame,
+            text="Bienvenido a GES",
+            font=('Segoe UI', 36, 'bold'),
+            fg='white',
+            bg='rgba(0,0,0,0)'
+        )
+        title_label.pack(pady=(50, 30))
+        
+        # Subtitle
+        subtitle_label = tk.Label(
+            welcome_frame,
+            text="Regístrate para comenzar",
+            font=('Segoe UI', 18),
+            fg='#ecf0f1',
+            bg='rgba(0,0,0,0)'
+        )
+        subtitle_label.pack(pady=(0, 60))
+        
+        # Descripción
+        description_label = tk.Label(
+            welcome_frame,
+            text="Sistema de Gestión Escolar\n"
+                 "Administra académico, finanzas y estudiantes\n"
+                 "de forma integral y eficiente",
+            font=('Segoe UI', 12),
+            fg='#bdc3c7',
+            bg='rgba(0,0,0,0)',
+            justify='left'
+        )
+        description_label.pack(pady=(0, 40))
+    
+    def create_registration_form_column(self, parent):
+        """Crea la columna derecha con el formulario de registro"""
+        # Frame de la tarjeta de registro
+        card_frame = tk.Frame(parent, bg='white', relief='solid', borderwidth=1)
+        card_frame.pack(side='right', fill='both', expand=True, padx=(20, 40), pady=40)
+        
+        # Espaciado interno
+        inner_frame = tk.Frame(card_frame, bg='white')
+        inner_frame.pack(pady=25, padx=30, fill='both', expand=True)
+        
+        # Título de la tarjeta
+        card_title = tk.Label(
+            inner_frame,
+            text="Crear Cuenta",
+            font=('Segoe UI', 16, 'bold'),
+            fg='#2c3e50',
+            bg='white'
+        )
+        card_title.pack(pady=(0, 20))
+        
+        # Campo de usuario
+        self.create_username_field(inner_frame)
+        
+        # Campo de contraseña
+        self.create_password_field(inner_frame)
+        
+        # Campo de confirmar contraseña
+        self.create_confirm_password_field(inner_frame)
+        
+        # Botón de registro
+        self.create_register_button(inner_frame)
+        
+        # Enlace a login
+        self.create_login_link(inner_frame)
+    
+    def create_username_field(self, parent):
+        """Crea el campo de usuario"""
+        # Label
+        username_label = tk.Label(
+            parent,
+            text="Usuario:",
+            font=('Segoe UI', 10),
+            fg='#2c3e50',
+            bg='white',
+            anchor='w'
+        )
+        username_label.pack(fill='x', pady=(0, 5))
+        
+        # Entry
+        self.username_entry = tk.Entry(
+            parent,
+            font=('Segoe UI', 11),
+            relief='solid',
+            borderwidth=1,
+            highlightthickness=1,
+            highlightcolor='#3498db'
+        )
+        self.username_entry.pack(fill='x', pady=(0, 12))
+        self.username_entry.configure(insertbackground='#3498db')
+    
+    def create_password_field(self, parent):
+        """Crea el campo de contraseña"""
+        # Label
+        password_label = tk.Label(
+            parent,
+            text="Contraseña:",
+            font=('Segoe UI', 10),
+            fg='#2c3e50',
+            bg='white',
+            anchor='w'
+        )
+        password_label.pack(fill='x', pady=(0, 5))
+        
+        # Entry
+        self.password_entry = tk.Entry(
+            parent,
+            font=('Segoe UI', 11),
+            show='•',
+            relief='solid',
+            borderwidth=1,
+            highlightthickness=1,
+            highlightcolor='#3498db'
+        )
+        self.password_entry.pack(fill='x', pady=(0, 12))
+        self.password_entry.configure(insertbackground='#3498db')
+    
+    def create_confirm_password_field(self, parent):
+        """Crea el campo de confirmar contraseña"""
+        # Label
+        confirm_label = tk.Label(
+            parent,
+            text="Confirmar Contraseña:",
+            font=('Segoe UI', 10),
+            fg='#2c3e50',
+            bg='white',
+            anchor='w'
+        )
+        confirm_label.pack(fill='x', pady=(0, 5))
+        
+        # Entry
+        self.confirm_password_entry = tk.Entry(
+            parent,
+            font=('Segoe UI', 11),
+            show='•',
+            relief='solid',
+            borderwidth=1,
+            highlightthickness=1,
+            highlightcolor='#3498db'
+        )
+        self.confirm_password_entry.pack(fill='x', pady=(0, 18))
+        self.confirm_password_entry.configure(insertbackground='#3498db')
+    
+    def create_register_button(self, parent):
+        """Crea el botón de registro"""
+        self.register_button = tk.Button(
+            parent,
+            text="Registrarse",
+            font=('Segoe UI', 12, 'bold'),
+            bg='#27ae60',
+            fg='white',
+            relief='flat',
+            cursor='hand2',
+            command=self.register,
+            height=1
+        )
+        self.register_button.pack(fill='x', pady=(0, 12))
+        
+        # Efecto hover
+        self.register_button.bind('<Enter>', lambda e: self.register_button.configure(bg='#229954'))
+        self.register_button.bind('<Leave>', lambda e: self.register_button.configure(bg='#27ae60'))
+    
+    def create_login_link(self, parent):
+        """Crea enlace a login"""
+        link_frame = tk.Frame(parent, bg='white')
+        link_frame.pack(fill='x', pady=(5, 0))
+        
+        link_label = tk.Label(
+            link_frame,
+            text="¿Ya tienes cuenta? ",
+            font=('Segoe UI', 9),
+            fg='#7f8c8d',
+            bg='white'
+        )
+        link_label.pack(side='left')
+        
+        # Enlace clickeable
+        login_link = tk.Label(
+            link_frame,
+            text="Inicia sesión aquí",
+            font=('Segoe UI', 9, 'underline'),
+            fg='#3498db',
+            bg='white',
+            cursor='hand2'
+        )
+        login_link.pack(side='left')
+        login_link.bind('<Button-1>', self.on_login_link_click)
+    
+    def create_footer(self):
+        """Crea el footer de la ventana"""
+        footer_frame = tk.Frame(self.parent, bg='#f0f4f8', height=60)
+        footer_frame.pack(fill='x', side='bottom')
+        footer_frame.pack_propagate(False)
+        
+        # Información del sistema
+        info_label = tk.Label(
+            footer_frame,
+            text="© 2024 GES - Sistema de Gestión Escolar",
+            font=('Segoe UI', 9),
+            fg='#95a5a6',
+            bg='#f0f4f8'
+        )
+        info_label.pack(pady=20)
+    
+    def validate_inputs(self) -> bool:
+        """Valida los campos de entrada"""
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+        confirm_password = self.confirm_password_entry.get().strip()
+        
+        if not username:
+            messagebox.showerror("Error de Validación", "El nombre de usuario es obligatorio")
+            self.username_entry.focus()
+            return False
+        
+        if len(username) < 3:
+            messagebox.showerror("Error de Validación", "El nombre de usuario debe tener al menos 3 caracteres")
+            self.username_entry.focus()
+            return False
+        
+        if len(username) > 50:
+            messagebox.showerror("Error de Validación", "El nombre de usuario no puede exceder 50 caracteres")
+            self.username_entry.focus()
+            return False
+        
+        if not password:
+            messagebox.showerror("Error de Validación", "La contraseña es obligatoria")
+            self.password_entry.focus()
+            return False
+        
+        if len(password) < 6:
+            messagebox.showerror("Error de Validación", "La contraseña debe tener al menos 6 caracteres")
+            self.password_entry.focus()
+            return False
+        
+        if password != confirm_password:
+            messagebox.showerror("Error de Validación", "Las contraseñas no coinciden")
+            self.confirm_password_entry.focus()
+            return False
+        
+        return True
+    
+    def register(self):
+        """Procesa el registro del usuario"""
+        if not self.validate_inputs():
+            return
+        
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+        
+        try:
+            # Verificar que el usuario no exista
+            existing_user = user_repo.get_by_username(username)
+            if existing_user:
+                messagebox.showerror("Error de Registro", 
+                                  "El nombre de usuario ya está en uso")
+                return
+            
+            # Crear nuevo usuario con rol básico (Usuario)
+            # role_id = 3 corresponde a 'Usuario'
+            user_data = {
+                'username': username,
+                'password_hash': hash_password(password),
+                'role_id': 3,  # Rol básico de Usuario
+                'is_active': True
+            }
+            
+            # Insertar usuario en la base de datos
+            new_user_id = user_repo.create(user_data)
+            
+            if new_user_id:
+                messagebox.showinfo("Registro Exitoso", 
+                                  "¡Tu cuenta ha sido creada exitosamente!\n\n"
+                                  "Ahora puedes iniciar sesión con tus credenciales.")
+                
+                # Llamar callback con información del nuevo usuario
+                registered_user = {
+                    'id': new_user_id,
+                    'username': username,
+                    'role_id': 3,
+                    'is_active': True
+                }
+                self.on_success(registered_user)
+            else:
+                messagebox.showerror("Error del Sistema", 
+                                  "No se pudo crear la cuenta. Por favor, intente nuevamente.")
+        
+        except Exception as e:
+            messagebox.showerror("Error del Sistema", 
+                              f"Ocurrió un error al registrar: {str(e)}")
+    
+    def on_login_link_click(self, event):
+        """Maneja el click en el enlace de login"""
+        if self.on_show_login:
+            self.on_show_login()

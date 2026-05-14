@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from config import DB_PATH, DEFAULT_PORT
 from database.models import DatabaseModels
-from ui.login import LoginWindow
+from ui.login import LoginWindow, RegistrationWindow
 from ui.dashboard import DashboardWindow
 import tkinter as tk
 from tkinter import messagebox
@@ -90,6 +90,11 @@ class GESApplication:
         try:
             models = DatabaseModels()
             models.initialize_database()
+            
+            # Inicializar estructura académica por defecto
+            from utils.initialize_default_structure import initialize_default_academic_structure
+            initialize_default_academic_structure()
+            
         except Exception as e:
             messagebox.showerror("Error de Base de Datos", 
                               f"No se pudo inicializar la base de datos:\n{str(e)}")
@@ -107,7 +112,20 @@ class GESApplication:
             except:
                 pass
         
-        self.current_window = LoginWindow(self.root, self.on_login_success)
+        self.current_window = LoginWindow(self.root, self.on_login_success, self.show_registration)
+    
+    def show_registration(self) -> None:
+        """Muestra ventana de registro"""
+        if self.current_window:
+            # Limpiar ventana anterior sin llamar a destroy()
+            try:
+                # Limpiar widgets del registro anterior
+                for widget in self.root.winfo_children():
+                    widget.destroy()
+            except:
+                pass
+        
+        self.current_window = RegistrationWindow(self.root, self.on_registration_success, self.show_login)
     
     def on_login_success(self, user_data: Dict[str, Any], password: str) -> None:
         try:
@@ -127,6 +145,17 @@ class GESApplication:
             
             self.show_dashboard()
             
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+    
+    def on_registration_success(self, user_data: Dict[str, Any]) -> None:
+        """Callback cuando el registro es exitoso"""
+        try:
+            messagebox.showinfo("Registro Exitoso", 
+                              f"¡Bienvenido {user_data['username']}!\n\nTu cuenta ha sido creada exitosamente.\n\nAhora puedes iniciar sesión.")
+            # Volver automáticamente al login
+            self.show_login()
         except Exception as e:
             import traceback
             traceback.print_exc()

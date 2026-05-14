@@ -493,6 +493,82 @@ class SettingsView:
         # Cargar datos iniciales
         self.populate_centro_form()
     
+    def create_estructura_content(self):
+        """Crea contenido de pestaña estructura académica"""
+        AcademicStructureView(self.content_frame)
+    
+    def create_default_academic_structure(self):
+        """Crea la estructura académica por defecto"""
+        result = messagebox.askyesno(
+            "Confirmar",
+            "¿Crear estructura académica por defecto?\n\nEsto creará aulas para:\n"
+            "- Primaria: 1º a 6º grado, aula A, turno Mañana\n"
+            "- Secundaria: 1º a 4º grado, aula A, turno Mañana\n"
+            "- Bachillerato: 1º y 2º grado, aula A, turno Mañana\n\n"
+            "Prescolar no se modifica."
+        )
+        
+        if not result:
+            return
+        
+        try:
+            created_count = 0
+            
+            # Mapeos de grados
+            primaria_grades = ["Primero", "Segundo", "Tercero", "Cuarto", "Quinto", "Sexto"]
+            secundaria_grades = ["Primero", "Segundo", "Tercero", "Cuarto"]
+            bachillerato_grades = ["Primero", "Segundo"]
+            
+            # Crear aulas para primaria
+            for grade in primaria_grades:
+                classroom_data = {
+                    'grade_name': grade,
+                    'name': 'A',
+                    'shift': 'Mañana'
+                }
+                classroom_repo.create(classroom_data)
+                created_count += 1
+            
+            # Crear aulas para secundaria
+            for grade in secundaria_grades:
+                classroom_data = {
+                    'grade_name': grade,
+                    'name': 'A',
+                    'shift': 'Mañana'
+                }
+                classroom_repo.create(classroom_data)
+                created_count += 1
+            
+            # Crear aulas para bachillerato
+            for grade in bachillerato_grades:
+                classroom_data = {
+                    'grade_name': grade,
+                    'name': 'A',
+                    'shift': 'Mañana'
+                }
+                classroom_repo.create(classroom_data)
+                created_count += 1
+            
+            # Refrescar vista
+            self.refresh_academic_structure()
+            
+            messagebox.showinfo(
+                "Éxito",
+                f"Estructura académica por defecto creada correctamente.\n"
+                f"Se crearon {created_count} aulas."
+            )
+            self.update_status(f"Estructura académica creada: {created_count} aulas")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo crear la estructura: {str(e)}")
+            self.update_status("Error creando estructura académica")
+    
+    def refresh_academic_structure(self):
+        """Refresca la vista de estructura académica"""
+        if hasattr(self, 'academic_structure_view'):
+            self.academic_structure_view.refresh()
+        self.update_status("Estructura académica actualizada")
+    
     def load_initial_data(self):
         """Carga datos iniciales"""
         self.update_status("Cargando configuración inicial...")
