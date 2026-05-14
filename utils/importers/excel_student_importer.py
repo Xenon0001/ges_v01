@@ -15,6 +15,7 @@ class ExcelStudentImporter:
     EXPECTED_COLUMNS = [
         'nombre',
         'apellido',
+        'nivel',
         'curso',
         'aula',
         'turno',
@@ -29,6 +30,7 @@ class ExcelStudentImporter:
     COLUMN_ALIASES = {
         'nombre': 'nombre',
         'apellido': 'apellido',
+        'nivel': 'nivel',
         'curso': 'curso',
         'aula': 'aula',
         'turno': 'turno',
@@ -44,7 +46,12 @@ class ExcelStudentImporter:
         'año escolar': 'año escolar',
         'ano escolar': 'año escolar',
         'año': 'año escolar',
-        'year': 'año escolar'
+        'year': 'año escolar',
+        'level': 'nivel',
+        'origen': 'origen',
+        'procedencia': 'origen',
+        'clase': 'aula',
+        'fechanac': 'fechanacimiento'
     }
 
     def __init__(self):
@@ -132,6 +139,7 @@ class ExcelStudentImporter:
             headers = [
                 'Nombre',
                 'Apellido',
+                'Nivel',
                 'Curso',
                 'Aula',
                 'Turno',
@@ -147,8 +155,8 @@ class ExcelStudentImporter:
                 worksheet.cell(row=1, column=col_index, value=header)
 
             sample_rows = [
-                ['Juan', 'Pérez', 'Primero', 'A', 'Mañana', 'María Pérez', '2024-001', 'M', '2009-03-12', '987654321', 2024],
-                ['Ana', 'García', 'Segundo', 'B', 'Tarde', 'Carlos García', '2024-002', 'F', '2008-07-22', '956123478', 2024],
+                ['Juan', 'Pérez', 'Primaria', 'Primero', 'A', 'Mañana', 'María Pérez', '2024-001', 'M', '2009-03-12', '987654321', 2024],
+                ['Ana', 'García', 'Primaria', 'Segundo', 'B', 'Tarde', 'Carlos García', '2024-002', 'F', '2008-07-22', '956123478', 2024],
             ]
             for row_index, sample in enumerate(sample_rows, start=2):
                 for col_index, value in enumerate(sample, start=1):

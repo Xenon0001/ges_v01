@@ -8,6 +8,7 @@ class StudentImportValidator:
     REQUIRED_COLUMNS = [
         'nombre',
         'apellido',
+        'nivel',
         'curso',
         'aula',
         'turno',
@@ -37,6 +38,9 @@ class StudentImportValidator:
             return False, 'Aula es obligatoria'
         if not turno:
             return False, 'Turno es obligatorio'
+        nivel = self.normalize_text(row_data.get('nivel'))
+        if not nivel:
+            return False, 'Nivel es obligatorio'
 
         if anio is None or self.normalize_text(anio) == '':
             return False, 'Año Escolar es obligatorio'

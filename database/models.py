@@ -112,6 +112,7 @@ class DatabaseModels:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 first_name TEXT NOT NULL,
                 last_name TEXT NOT NULL,
+                nivel TEXT,
                 enrollment_number TEXT DEFAULT NULL,
                 classroom_id INTEGER,
                 enrollment_status TEXT DEFAULT 'activo',
@@ -121,6 +122,11 @@ class DatabaseModels:
                 FOREIGN KEY (classroom_id) REFERENCES {TABLES['classrooms']} (id)
             )
         """)
+        
+        # Asegurar columna nivel en bases existentes
+        existing_columns = db.execute_query(f"PRAGMA table_info({TABLES['students']})")
+        if not any(col['name'] == 'nivel' for col in existing_columns):
+            db.execute_update(f"ALTER TABLE {TABLES['students']} ADD COLUMN nivel TEXT")
         
         # Tabla scores
         db.execute_update(f"""
@@ -271,6 +277,27 @@ class DatabaseModels:
         db.execute_many(f"""
             INSERT OR IGNORE INTO {TABLES['subjects']} (name) VALUES (?)
         """, subjects)
+        
+        # Cuotas de matrícula por nivel (precios iniciales)
+        db.execute_update(f"""
+            INSERT OR IGNORE INTO enrollment_prices (level_id, price, academic_year)
+            SELECT id, 50000, 2024 FROM {TABLES['levels']} WHERE name = 'Preescolar'
+        """)
+        
+        db.execute_update(f"""
+            INSERT OR IGNORE INTO enrollment_prices (level_id, price, academic_year)
+            SELECT id, 75000, 2024 FROM {TABLES['levels']} WHERE name = 'Primaria'
+        """)
+        
+        db.execute_update(f"""
+            INSERT OR IGNORE INTO enrollment_prices (level_id, price, academic_year)
+            SELECT id, 100000, 2024 FROM {TABLES['levels']} WHERE name = 'Secundaria'
+        """)
+        
+        db.execute_update(f"""
+            INSERT OR IGNORE INTO enrollment_prices (level_id, price, academic_year)
+            SELECT id, 125000, 2024 FROM {TABLES['levels']} WHERE name = 'Bachillerato'
+        """)
     
     @staticmethod
     def initialize_database() -> None:

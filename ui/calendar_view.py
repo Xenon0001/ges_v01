@@ -481,7 +481,7 @@ class CreateCalendarDialog:
         
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Nuevo Calendario de Pagos")
-        self.dialog.geometry("600x500")
+        self.dialog.geometry("900x900")
         self.dialog.transient(parent)
         self.dialog.grab_set()
         
@@ -653,8 +653,13 @@ class CreateCalendarDialog:
         discount = self.discount_var.get()
         total_final = max(0, total_base - discount)
         
-        # Nueva lógica de cálculo
-        initial_payment = self.initial_payment_var.get()
+        # Nueva lógica de cálculo - Validar DoubleVar
+        try:
+            initial_payment = self.initial_payment_var.get()
+        except (tk.TclError, ValueError):
+            initial_payment = 0.0
+            self.initial_payment_var.set(0.0)
+        
         installments_count = self.installments_count_var.get()
         
         # Validar que el pago inicial no exceda el total final

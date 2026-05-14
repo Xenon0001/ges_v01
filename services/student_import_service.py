@@ -193,6 +193,7 @@ class StudentImportService:
         student_data = {
             'first_name': normalize_text(row_data.get('nombre')),
             'last_name': normalize_text(row_data.get('apellido')),
+            'nivel': normalize_text(row_data.get('nivel')),
             'classroom_id': classroom_id,
             'enrollment_number': normalize_enrollment_number(row_data.get('matrícula')),
             'tutor_name': normalize_text(row_data.get('tutor')),

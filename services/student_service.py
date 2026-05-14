@@ -28,6 +28,8 @@ class StudentService:
         # Validaciones básicas
         if not student_data.get('first_name') or not student_data.get('last_name'):
             raise ValueError("Nombre y apellido son obligatorios")
+        if not student_data.get('nivel'):
+            raise ValueError("Nivel es obligatorio")
         
         # Validar que el aula exista si se especifica
         if student_data.get('classroom_id'):

@@ -514,19 +514,21 @@ class FinanceView:
         # Treeview (tabla)
         self.students_tree = ttk.Treeview(
             table_frame,
-            columns=('Nombre', 'Apellido', 'Estado', 'Pendiente'),
+            columns=('ID', 'Nombre', 'Apellido', 'Estado', 'Pendiente'),
             show='headings',
             yscrollcommand=vsb.set,
             xscrollcommand=hsb.set
         )
         
         # Configurar columnas
+        self.students_tree.heading('ID', text='ID')
         self.students_tree.heading('Nombre', text='Nombre')
         self.students_tree.heading('Apellido', text='Apellido')
         self.students_tree.heading('Estado', text='Estado Financiero')
         self.students_tree.heading('Pendiente', text='Pendiente')
         
         # Configurar anchos
+        self.students_tree.column('ID', width=0, minwidth=0, stretch=False)
         self.students_tree.column('Nombre', width=150, minwidth=120)
         self.students_tree.column('Apellido', width=150, minwidth=120)
         self.students_tree.column('Estado', width=150, minwidth=120)
@@ -778,6 +780,7 @@ class FinanceView:
                     status_text = f"⏳ {status_text}"
                 
                 self.students_tree.insert('', 'end', values=(
+                    student['id'],
                     student['first_name'],
                     student['last_name'],
                     status_text,
@@ -787,6 +790,7 @@ class FinanceView:
             except Exception as e:
                 print(f"Error obteniendo datos del estudiante {student['id']}: {e}")
                 self.students_tree.insert('', 'end', values=(
+                    student['id'],
                     student['first_name'],
                     student['last_name'],
                     "Error",
@@ -807,15 +811,12 @@ class FinanceView:
             return
         
         # Buscar el estudiante correspondiente
-        student_name = values[0]
-        student_lastname = values[1]
+        try:
+            student_id = int(values[0])
+        except (TypeError, ValueError):
+            return
         
-        selected_student = None
-        for student in self.filtered_students:
-            if (student['first_name'] == student_name and 
-                student['last_name'] == student_lastname):
-                selected_student = student
-                break
+        selected_student = next((s for s in self.filtered_students if s['id'] == student_id), None)
         
         if selected_student:
             self.load_student_details(selected_student)

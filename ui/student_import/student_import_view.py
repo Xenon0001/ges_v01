@@ -98,12 +98,13 @@ class StudentImportView:
 
         self.preview_tree = ttk.Treeview(
             content_frame,
-            columns=('fila', 'nombre', 'apellido', 'curso', 'aula', 'turno', 'tutor', 'ano'),
+            columns=('fila', 'nivel', 'nombre', 'apellido', 'curso', 'aula', 'turno', 'tutor', 'ano'),
             show='headings',
             height=12
         )
         for key, title in [
             ('fila', 'Fila'),
+            ('nivel', 'Nivel'),
             ('nombre', 'Nombre'),
             ('apellido', 'Apellido'),
             ('curso', 'Curso'),
@@ -208,6 +209,7 @@ class StudentImportView:
                 'end',
                 values=(
                     row.row_number,
+                    row.raw_data.get('nivel', ''),
                     row.raw_data.get('nombre', ''),
                     row.raw_data.get('apellido', ''),
                     row.raw_data.get('curso', ''),

@@ -410,7 +410,16 @@ class StudentsView:
         fields['last_name'] = tk.Entry(last_name_frame, font=('Segoe UI', 10), width=35)
         fields['last_name'].pack(side='left', padx=(10, 0))
         
-        # 3. Número de Matrícula (generado automáticamente)
+        # 3. Nivel *
+        level_frame = tk.Frame(fields_frame, bg='white')
+        level_frame.pack(fill='x', pady=5)
+        tk.Label(level_frame, text="Nivel *:", font=('Segoe UI', 10, 'bold'), 
+                bg='white', fg='#34495e', width=15, anchor='w').pack(side='left')
+        fields['nivel'] = ttk.Combobox(level_frame, values=['Preescolar', 'Primaria', 'Secundaria', 'Bachillerato'],
+                                       font=('Segoe UI', 10), width=33, state='readonly')
+        fields['nivel'].pack(side='left', padx=(10, 0))
+        
+        # 4. Número de Matrícula (generado automáticamente)
         enrollment_frame = tk.Frame(fields_frame, bg='white')
         enrollment_frame.pack(fill='x', pady=5)
         tk.Label(enrollment_frame, text="Matrícula:", font=('Segoe UI', 10, 'bold'), 
@@ -437,7 +446,7 @@ class StudentsView:
                 fields['enrollment_number'].insert(0, student['enrollment_number'])
                 fields['enrollment_number'].config(state='readonly')
         
-        # 4. Aula
+        # 5. Aula
         classroom_frame = tk.Frame(fields_frame, bg='white')
         classroom_frame.pack(fill='x', pady=5)
         tk.Label(classroom_frame, text="Aula:", font=('Segoe UI', 10, 'bold'), 
@@ -503,6 +512,8 @@ class StudentsView:
                     if classroom_id == student['classroom_id']:
                         fields['classroom_id'].set(classroom_text)
                         break
+            if student.get('nivel'):
+                fields['nivel'].set(student['nivel'])
             fields['enrollment_status'].set(student['enrollment_status'])
             if student.get('tutor_name'):
                 fields['tutor_name'].insert(0, student['tutor_name'])
@@ -510,6 +521,7 @@ class StudentsView:
                 fields['origin_center'].insert(0, student['origin_center'])
         else:
             # Valores por defecto para nuevo estudiante
+            fields['nivel'].set('Preescolar')
             fields['enrollment_status'].set('activo')
         
         # Funciones para guardar y cancelar
@@ -519,10 +531,11 @@ class StudentsView:
                 # Validar campos obligatorios
                 first_name = fields['first_name'].get().strip()
                 last_name = fields['last_name'].get().strip()
+                level = fields['nivel'].get().strip()
                 
-                if not first_name or not last_name:
+                if not first_name or not last_name or not level:
                     messagebox.showerror("Error de Validación", 
-                                      "Nombre y apellido son obligatorios")
+                                      "Nombre, apellido y nivel son obligatorios")
                     return
                 
                 if len(first_name) > 100:
@@ -542,6 +555,7 @@ class StudentsView:
                 student_data = {
                     'first_name': first_name,
                     'last_name': last_name,
+                    'nivel': level,
                     'enrollment_number': fields['enrollment_number'].get().strip(),
                     'tutor_name': tutor_name,
                     'origin_center': fields['origin_center'].get().strip(),
